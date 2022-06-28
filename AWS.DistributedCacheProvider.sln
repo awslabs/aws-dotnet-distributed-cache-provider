@@ -5,6 +5,8 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProvider", "src\AWS.DistributedCacheProvider\AWS.DistributedCacheProvider.csproj", "{BDDB418E-2C8C-40C0-A227-C32E41547798}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderTests", "test\AWS.DistributedCacheProviderTests\AWS.DistributedCacheProviderTests.csproj", "{7E8E2389-7A23-4F01-828C-CFD7107C0900}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
