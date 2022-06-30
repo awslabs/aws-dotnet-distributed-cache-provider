@@ -5,127 +5,94 @@ using Amazon.Runtime.Internal.Util;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
+using Microsoft.Extensions.Options;
 
 namespace AWS.DistributedCacheProvider
 {
     public class DynamoDBDistributedCache : IDistributedCache
     {
-        const string DEFAULT_TABLENAME = ".NET_Cache";
-        IAmazonDynamoDB _ddbClient;
-        Table _table;
+        private readonly IAmazonDynamoDB _ddbClient;
 
         //configurable values
-        private string _tableName { get; } = DEFAULT_TABLENAME;
-        private bool _createIfNotExist { get; } = true;
-        private int _initialReadUnits { get; } = 10;
-        private int _initialWriteUnits { get; } = 5;
-        private const int DESCRIBE_INTERVAL = 5000;
-        private const string ACTIVE_STATUS = "Active";
+        private string _tableName { get; }
+        private readonly bool _consistentReads;
 
         //Const values for columns
-        private const string PRIMARY_KEY = "primary_key";//column that the key for the entry is stored
+        public const string PRIMARY_KEY = "primary_key";//column that the key for the entry is stored
+        public const string DEFAULT_TTL_ATTRIBUTE_NAME = "expdate";
+
+        private readonly string TTL_ATTRIBUTE_NAME;
 
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBDistributedCache));
 
-        public DynamoDBDistributedCache()
-        {
-            _ddbClient = new AmazonDynamoDBClient();
-            try
-            {
-                var tabbleConfig = new TableConfig(DEFAULT_TABLENAME)
-                {
-                    Conversion = DynamoDBEntryConversion.V2
-                };
-                _table = Table.LoadTable(_ddbClient, tabbleConfig);
-            }
-            catch (ResourceNotFoundException) { }
 
-            if (_table == null)
+        public DynamoDBDistributedCache(AmazonDynamoDBClient client, string tableName, bool consistentReads)
+        {
+            if(client == null)
             {
-                if (_createIfNotExist)
-                    _table = CreateTable();
-                else
-                    throw new AmazonDynamoDBException(string.Format("Table {0} was not found to be used to store session state and autocreate is turned off.", _tableName));
+                throw new ArgumentNullException(nameof(client));
             }
-            else
+            if(tableName == null)
             {
-                ValidateTable();
+                throw new ArgumentNullException(nameof(tableName));
             }
+            _ddbClient = client;
+            _tableName = tableName;
+            _consistentReads = consistentReads;
+            //Table should already exist when this class is instantiated. If it does not, a ResourceNotFoundException will be thrown here
+            //Need to describe the table for validation and describe the table's TTL status
+            var task_tableDesc = _ddbClient.DescribeTableAsync(_tableName);
+            var task_ttlDesc = _ddbClient.DescribeTimeToLiveAsync(_tableName);
+            //Table must be validated that it can serve as our cache
+            ValidateTable(task_tableDesc.Result.Table);
+
+            //Check if TTL is enabled on this table
+            var ttlResp = task_ttlDesc.Result.TimeToLiveDescription;
+            if(ttlResp.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlResp.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
+            {
+                //Log warning to user here that TTL for the table is currently off or being turned off
+                //What is AWS convention for logging a warning?
+            }
+            TTL_ATTRIBUTE_NAME = ttlResp.AttributeName ?? DEFAULT_TTL_ATTRIBUTE_NAME;
         }
 
-        public string TableName()
-        {
-            return _tableName;
-        }
-
-        private void ValidateTable()
+        private static void ValidateTable(TableDescription desc)
         {
             //This method was present in the old implementation, is it neccesary to have now also?
-            if (_table.HashKeys.Count != 1)
-                throw new AmazonDynamoDBException(string.Format("Table {0} cannot be used as a cache because it does not define a single hash key", _tableName));
-            var hashKey = _table.HashKeys[0];
-            KeyDescription hashKeyDescription = _table.Keys[hashKey];
-            if (hashKeyDescription.Type != DynamoDBEntryType.String)
-                throw new AmazonDynamoDBException(string.Format("Table {0} cannot be used as a cache because hash key is not a string.", _tableName));
-
-            if (_table.RangeKeys.Count > 0)
-                throw new AmazonDynamoDBException(string.Format("Table {0} cannot be used as a cache because it contains a range key in its schema.", _tableName));
-        }
-
-        private Table CreateTable()
-        {
-            CreateTableRequest createRequest = new CreateTableRequest
+            var foundValidKey = false;
+            foreach (var key in desc.KeySchema)
             {
-                TableName = _tableName,
-                KeySchema = new List<KeySchemaElement>
+                if (key.KeyType.Equals(KeyType.RANGE))
                 {
-                    new KeySchemaElement
-                    {
-                        AttributeName = PRIMARY_KEY,
-                        KeyType = "HASH"
-                    }
-                },
-                AttributeDefinitions = new List<AttributeDefinition>
-                {
-                    new AttributeDefinition
-                    {
-                        AttributeName = PRIMARY_KEY,
-                        AttributeType = "S"
-                    }
-                },
-                ProvisionedThroughput = new ProvisionedThroughput
-                {
-                    ReadCapacityUnits = _initialReadUnits,
-                    WriteCapacityUnits = _initialWriteUnits
+                    throw new AmazonDynamoDBException(string.Format("Table {0} cannot be used as a cache because it contains a range key in its schema.", desc.TableName));
                 }
-            };
-
-            _ddbClient.CreateTableAsync(createRequest);
-
-            DescribeTableRequest descRequest = new DescribeTableRequest
-            {
-                TableName = _tableName
-            };
-
-            // Wait till table is active
-            bool isActive = false;
-            while (!isActive)
-            {
-                Thread.Sleep(DESCRIBE_INTERVAL);
-                DescribeTableResponse descResponse = _ddbClient.DescribeTableAsync(descRequest).Result;
-                string tableStatus = descResponse.Table.TableStatus;
-
-                if (string.Equals(tableStatus, ACTIVE_STATUS, StringComparison.InvariantCultureIgnoreCase))
-                    isActive = true;
+                else //We know the key is of type Hash
+                {
+                    foreach (var attributeDef in desc.AttributeDefinitions)
+                    {
+                        if (attributeDef.AttributeName.Equals(key.AttributeName))
+                        {
+                            if (attributeDef.AttributeType.Equals(new ScalarAttributeType("S")))
+                            {
+                                if (!foundValidKey)
+                                {
+                                    foundValidKey = true;
+                                }
+                                else
+                                {
+                                    throw new AmazonDynamoDBException(string.Format("Table {0} cannot be used as a cache because it does not define a single hash key", desc.TableName));
+                                }
+                            }
+                            else
+                            {
+                                throw new AmazonDynamoDBException(string.Format("Table {0} cannot be used as a cache because hash key is not a string.", desc.TableName));
+                            }
+                        }
+                    }
+                }
             }
-
-            var tableConfig = new TableConfig(_tableName)
-            {
-                Conversion = DynamoDBEntryConversion.V1
-            };
-            Table table = Table.LoadTable(_ddbClient, tableConfig);
-            return table;
         }
+        
         public byte[] Get(string key)
         {
             throw new NotImplementedException();
