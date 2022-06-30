@@ -10,19 +10,13 @@ namespace AWS.DistributedCacheProviderTests
     public class DynamoDBDistributedCacheTableTests
     {
         [Fact]
-        public void CreateTableTest()
-        {
-            var cache = new DynamoDBDistributedCache();
-            CleanupTable(cache.TableName());
-        }
-
-        [Fact]
         public void LoadValidTableTest()
         {
+            var tableName = "table_test_1";
             var client = new AmazonDynamoDBClient();
-            client.CreateTableAsync(new CreateTableRequest
+            var request = new CreateTableRequest
             {
-                TableName = ".NET_Cache",
+                TableName = tableName,
                 KeySchema = new List<KeySchemaElement>
                 {
                     new KeySchemaElement
@@ -44,18 +38,20 @@ namespace AWS.DistributedCacheProviderTests
                     ReadCapacityUnits = 1,
                     WriteCapacityUnits = 1
                 }
-            }).Wait();
-            _ = new DynamoDBDistributedCache();
-            CleanupTable(".NET_Cache");
+            };
+            CreateAndWaitUntilActive(client, request);
+            _ = new DynamoDBDistributedCache(client, tableName, false);
+            CleanupTable(client, tableName);
         }
 
         [Fact]
         public void LoadInvalidTable_TooManyKeysTest()
         {
+            var tableName = "table_test_2";
             var client = new AmazonDynamoDBClient();
-            client.CreateTableAsync(new CreateTableRequest
+            var request = new CreateTableRequest
             {
-                TableName = ".NET_Cache",
+                TableName = tableName,
                 KeySchema = new List<KeySchemaElement>
                 {
                     new KeySchemaElement
@@ -87,18 +83,20 @@ namespace AWS.DistributedCacheProviderTests
                     ReadCapacityUnits = 1,
                     WriteCapacityUnits = 1
                 }
-            }).Wait();
-            Assert.Throws<AmazonDynamoDBException>(() => new DynamoDBDistributedCache());
-            CleanupTable(".NET_Cache");
+            };
+            CreateAndWaitUntilActive(client, request);
+            Assert.Throws<AmazonDynamoDBException>(() => new DynamoDBDistributedCache(client, tableName, false));
+            CleanupTable(client, tableName);
         }
 
         [Fact]
         public void LoadInvalidTable_BadKeyTypeTest()
         {
+            var tableName = "table_test_3";
             var client = new AmazonDynamoDBClient();
-            client.CreateTableAsync(new CreateTableRequest
+            var request = new CreateTableRequest
             {
-                TableName = ".NET_Cache",
+                TableName = tableName,
                 KeySchema = new List<KeySchemaElement>
                 {
                     new KeySchemaElement
@@ -120,15 +118,21 @@ namespace AWS.DistributedCacheProviderTests
                     ReadCapacityUnits = 1,
                     WriteCapacityUnits = 1
                 }
-            }).Wait();
-            Assert.Throws<AmazonDynamoDBException>(() => new DynamoDBDistributedCache());
-            CleanupTable(".NET_Cache");
+            };
+            CreateAndWaitUntilActive(client, request);
+            Assert.Throws<AmazonDynamoDBException>(() => new DynamoDBDistributedCache(client, tableName, false));
+            CleanupTable(client, tableName);
         }
 
-        private void CleanupTable(string tableName)
+        private void CreateAndWaitUntilActive(AmazonDynamoDBClient client, CreateTableRequest request)
         {
-            var client = new AmazonDynamoDBClient();
-            // Wait till table is active
+            _ = client.CreateTableAsync(request).Result;
+            WaitUntilActive(client, request.TableName);
+
+        }
+
+        private void WaitUntilActive(AmazonDynamoDBClient client, string tableName)
+        {
             var isActive = false;
             while (!isActive)
             {
@@ -142,6 +146,11 @@ namespace AWS.DistributedCacheProviderTests
                 if (string.Equals(tableStatus, "Active", StringComparison.InvariantCultureIgnoreCase))
                     isActive = true;
             }
+        }
+
+        private void CleanupTable(AmazonDynamoDBClient client, string tableName)
+        {
+            WaitUntilActive(client, tableName);
             client.DeleteTableAsync(tableName).Wait();
             var exists = true;
             while (exists)
