@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             return AddAWSDynamoDBDistributedCache(services, options =>
             {
-                options.tablename = tablename;
+                options.TableName = tablename;
             });
         }
         public static IServiceCollection AddAWSDynamoDBDistributedCache(this IServiceCollection services, Action<DynamoDBDistributedCacheOptions> action)
@@ -36,24 +36,24 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 AmazonDynamoDBClient client;
                 IOptions<DynamoDBDistributedCacheOptions> options = p.GetRequiredService<IOptions<DynamoDBDistributedCacheOptions>>();
-                if (options.Value.credentials != null && options.Value.dynamoConfig != null)
+                if (options.Value.Credentials != null && options.Value.DynamoConfig != null)
                 {
-                    client = new AmazonDynamoDBClient(options.Value.credentials, options.Value.dynamoConfig);
-                } else if (options.Value.credentials != null)
+                    client = new AmazonDynamoDBClient(options.Value.Credentials, options.Value.DynamoConfig);
+                } else if (options.Value.Credentials != null)
                 {
-                    client = new AmazonDynamoDBClient(options.Value.credentials);
-                } else if (options.Value.dynamoConfig != null)
+                    client = new AmazonDynamoDBClient(options.Value.Credentials);
+                } else if (options.Value.DynamoConfig != null)
                 {
-                    client = new AmazonDynamoDBClient(options.Value.dynamoConfig);
+                    client = new AmazonDynamoDBClient(options.Value.DynamoConfig);
                 } else
                 {
                     client = new AmazonDynamoDBClient();
                 }
-                var name = options.Value.tablename;
-                var ttl = options.Value.enableTtl;
-                var ttlAttribute = options.Value.ttlAttributeName;
-                var create = options.Value.createTableIfNotExists;
-                var consistentReads = options.Value.consistentReads;
+                var name = options.Value.TableName;
+                var ttl = options.Value.EnableTtl;
+                var ttlAttribute = options.Value.TTLAttributeName;
+                var create = options.Value.CreateTableIfNotExists;
+                var consistentReads = options.Value.ConsistentReads;
 
                 if (string.IsNullOrEmpty(name))
                 {

@@ -3,9 +3,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Amazon.Runtime.Internal.Util;
 using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
-using Microsoft.Extensions.Options;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -25,8 +23,7 @@ namespace AWS.DistributedCacheProvider
 
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBDistributedCache));
 
-
-        public DynamoDBDistributedCache(AmazonDynamoDBClient client, string tableName, bool consistentReads)
+            public DynamoDBDistributedCache(AmazonDynamoDBClient client, string tableName, bool consistentReads)
         {
             if(client == null)
             {
