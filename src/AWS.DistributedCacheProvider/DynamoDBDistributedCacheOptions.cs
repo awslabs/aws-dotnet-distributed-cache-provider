@@ -1,11 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.Runtime;
 using Microsoft.Extensions.Options;
@@ -20,7 +15,7 @@ namespace AWS.DistributedCacheProvider
         /// <summery>
         /// Required parameter. The name of the backing DynamoDB Table. Cannot be Null or Empty
         /// </summery>
-        public string? TableName { get; set; }
+        public string TableName { get; set; }
 
         /// <summary>
         /// Optional parameter. Enables Time To Live (TTL) feature on the DynamoDB Table when creating. Default is false
@@ -37,10 +32,6 @@ namespace AWS.DistributedCacheProvider
         /// </summary>
         public bool ConsistentReads { get; set; }
 
-        /// <summary>
-        /// Optional Parameter. Attribute name that the cache will store the TTL information under. If not set, a default value will be used.
-        /// If the table already exists and TTL is enabled, the cache will default to that attribute instead
-        /// </summary>
         public string? TTLAttributeName { get; set; }
 
         /// <summary>
