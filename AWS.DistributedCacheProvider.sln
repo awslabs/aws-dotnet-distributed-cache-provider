@@ -5,7 +5,9 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProvider", "src\AWS.DistributedCacheProvider\AWS.DistributedCacheProvider.csproj", "{BDDB418E-2C8C-40C0-A227-C32E41547798}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderTests", "test\AWS.DistributedCacheProviderTests\AWS.DistributedCacheProviderTests.csproj", "{7E8E2389-7A23-4F01-828C-CFD7107C0900}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderUnitTests", "test\AWS.DistributedCacheProviderUnitTests\AWS.DistributedCacheProviderUnitTests.csproj", "{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWS.DistributedCacheProviderIntegrationTests", "AWS.DistributedCacheProviderIntegrationTests\AWS.DistributedCacheProviderIntegrationTests.csproj", "{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +19,14 @@ Global
 		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7E8E2389-7A23-4F01-828C-CFD7107C0900}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
