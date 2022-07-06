@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProvide
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderUnitTests", "test\AWS.DistributedCacheProviderUnitTests\AWS.DistributedCacheProviderUnitTests.csproj", "{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWS.DistributedCacheProviderIntegrationTests", "AWS.DistributedCacheProviderIntegrationTests\AWS.DistributedCacheProviderIntegrationTests.csproj", "{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWS.DistributedCacheProviderIntegrationTests", "test\AWS.DistributedCacheProviderIntegrationTests\AWS.DistributedCacheProviderIntegrationTests.csproj", "{BD90C6A7-DD5B-4EC0-815C-FEBE120A4E1A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

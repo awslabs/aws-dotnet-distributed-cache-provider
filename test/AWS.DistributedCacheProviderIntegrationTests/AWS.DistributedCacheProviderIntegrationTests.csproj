@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\AWS.DistributedCacheProvider\AWS.DistributedCacheProvider.csproj" />
+    <ProjectReference Include="..\..\src\AWS.DistributedCacheProvider\AWS.DistributedCacheProvider.csproj" />
   </ItemGroup>
 
 </Project>
