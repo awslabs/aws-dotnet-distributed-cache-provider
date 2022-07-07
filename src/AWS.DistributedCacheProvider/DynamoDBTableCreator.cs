@@ -9,22 +9,12 @@ namespace AWS.DistributedCacheProvider
 {
     public class DynamoDBTableCreator : IDynamoDBTableCreator
     {
-        private static readonly ILogger s_logger = Logger.GetLogger(typeof(DynamoDBTableCreator));
-        private readonly IThreadSleeper _sleeper;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sleeper">Sleeper object that we call to abstract out Thread.Sleep(). We abstract the method call to make testing easier.</param>
-        public DynamoDBTableCreator(IThreadSleeper sleeper)
-        {
-            _sleeper = sleeper;
-        }
+        private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBTableCreator));
 
         /// <inheritdoc/>
-        public async Task CreateIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, bool enableTTL, string ttlAttribute)
+        public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string ttlAttribute)
         {
-            s_logger.InfoFormat($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}");
+            _logger.InfoFormat($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}");
             try
             {
                 //test if table already exists
@@ -32,15 +22,15 @@ namespace AWS.DistributedCacheProvider
                 {
                     TableName = tableName
                 });
-                s_logger.InfoFormat("Table does exist. Validating");
+                _logger.InfoFormat("Table does exist. Validating");
                 ValidateTable(resp.Table);
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
-                s_logger.InfoFormat("Table does not exist");
+                _logger.InfoFormat("Table does not exist");
                 if (create)
                 {
-                    CreateTable(client, tableName, enableTTL, ttlAttribute);
+                    await CreateTable(client, tableName, ttlAttribute);
                 }
                 else
                 {
@@ -69,7 +59,7 @@ namespace AWS.DistributedCacheProvider
                     {
                         if (attributeDef.AttributeName.Equals(key.AttributeName))
                         {
-                            if (attributeDef.AttributeType.Equals(new ScalarAttributeType("S")))
+                            if (attributeDef.AttributeType == ScalarAttributeType.S)
                             {
                                 if (!foundValidKey)
                                 {
@@ -79,6 +69,7 @@ namespace AWS.DistributedCacheProvider
                                 {
                                     throw new AmazonDynamoDBException($"Table {description.TableName} cannot be used as a cache because it does not define a single hash key");
                                 }
+                                break;//Only one attribute can match the key by name, so no need to continue searching
                             }
                             else
                             {
@@ -91,13 +82,12 @@ namespace AWS.DistributedCacheProvider
         }
 
         /// <summary>
-        /// Creates a table that is usable for the client
+        /// Creates a table that is usable as a cache.
         /// </summary>
         /// <param name="client">DynamoDB client</param>
         /// <param name="tableName">Table name</param>
-        /// <param name="enableTTL">Enable TTL on the table</param>
         /// <param name="ttlAttribute">TTL attribute name</param>
-        private void CreateTable(IAmazonDynamoDB client, string tableName, bool enableTTL, string ttlAttribute)
+        private async Task CreateTable(IAmazonDynamoDB client, string tableName, string ttlAttribute)
         {
             var createRequest = new CreateTableRequest
             {
@@ -107,7 +97,7 @@ namespace AWS.DistributedCacheProvider
                     new KeySchemaElement
                     {
                         AttributeName = DynamoDBDistributedCache.PRIMARY_KEY,
-                        KeyType = "HASH"
+                        KeyType = KeyType.HASH
                     }
                 },
                 AttributeDefinitions = new List<AttributeDefinition>
@@ -115,43 +105,40 @@ namespace AWS.DistributedCacheProvider
                     new AttributeDefinition
                     {
                         AttributeName = DynamoDBDistributedCache.PRIMARY_KEY,
-                        AttributeType = "S"
+                        AttributeType = ScalarAttributeType.S
                     }
                 },
                 BillingMode = BillingMode.PAY_PER_REQUEST
             };
 
-            client.CreateTableAsync(createRequest);
+            await client.CreateTableAsync(createRequest);
 
             // Wait untill table is active
             var isActive = false;
             while (!isActive)
             {
-                _sleeper.Sleep(5000);
-                var tableStatus = client.DescribeTableAsync(new DescribeTableRequest
+                var tableStatus = (await (client.DescribeTableAsync(new DescribeTableRequest
                 {
                     TableName = tableName
-                }).Result.Table.TableStatus;
-
-                if (string.Equals(tableStatus, "Active", StringComparison.InvariantCultureIgnoreCase))
-                    isActive = true;
-            }
-            if (enableTTL)
-            {
-                client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
+                }))).Table.TableStatus;
+                if (tableStatus == TableStatus.ACTIVE)
                 {
-                    TableName = tableName,
-                    TimeToLiveSpecification = new TimeToLiveSpecification
-                    {
-                        AttributeName = ttlAttribute ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME,
-                        Enabled = true
-                    }
-                });
+                    isActive = true;
+                }
+                else
+                {
+                    await Task.Delay(5000);
+                }
             }
-            else
+            await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
             {
-                s_logger.InfoFormat($"Creating table {tableName}, however TTL has not been enabled. Items will never be deleted automatically");
-            }
+                TableName = tableName,
+                TimeToLiveSpecification = new TimeToLiveSpecification
+                {
+                    AttributeName = ttlAttribute ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME,
+                    Enabled = true
+                }
+            });
         }
 
         /// <inheritdoc/>
@@ -160,7 +147,7 @@ namespace AWS.DistributedCacheProvider
             var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
             {
-                s_logger.InfoFormat($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
+                _logger.InfoFormat($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
             }
             return ttlDesc.AttributeName ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME;
         }

@@ -1,5 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
+using Amazon.DynamoDBv2;
 using AWS.DistributedCacheProvider;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
@@ -23,27 +24,28 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services"></param>
         /// <param name="action"></param>
         /// <exception cref="ArgumentNullException"></exception>
-        public static IServiceCollection AddAWSDynamoDBDistributedCache(this IServiceCollection services, Action<DynamoDBDistributedCacheOptions> action)
+        public static IServiceCollection AddAWSDynamoDBDistributedCache(this IServiceCollection services, Action<DynamoDBDistributedCacheOptions>? action = null)
         {
             if (services == null)
             {
                 throw new ArgumentNullException(nameof(services));
             }
-            if (action == null)
-            {
-                throw new ArgumentNullException(nameof(action));
-            }
 
-            services.AddSingleton<IThreadSleeper, ThreadSleeper>();
+            services.TryAddAWSService<IAmazonDynamoDB>();
+
             services.AddSingleton<IDynamoDBTableCreator, DynamoDBTableCreator>();
-            services.AddSingleton<DynamoDBDistributedCacheFactory, DynamoDBDistributedCacheFactory>();
-
+            //check if this is called twice there is not an issue
             services.AddOptions();
-            services.Configure(action);
+            if (action != null)
+            {
+                services.Configure(action);
+            }
             services.Add(ServiceDescriptor.Singleton<IDistributedCache, DynamoDBDistributedCache>((IServiceProvider p) => 
             {
+                var client = p.GetRequiredService<IAmazonDynamoDB>();
                 var options = p.GetRequiredService<IOptions<DynamoDBDistributedCacheOptions>>();
-                return p.GetRequiredService<DynamoDBDistributedCacheFactory>().Build(options);
+                var creator = p.GetRequiredService<IDynamoDBTableCreator>();
+                return new DynamoDBDistributedCache(client, creator, options.Value);
             }));
 
             return services;

@@ -8,14 +8,15 @@ namespace AWS.DistributedCacheProvider
 {
     public class DynamoDBDistributedCache : IDistributedCache
     {
-        private readonly Lazy<Task<IAmazonDynamoDB>> _lazyClient;
         private IAmazonDynamoDB? _ddbClient;
-        private readonly Lazy<Task<string>> _lazyTTLAttribute;
+        private IDynamoDBTableCreator _dynamodbTableCreator;
+        private bool _started;
 
         //configurable values
         private string _tableName { get; }
         private readonly bool _consistentReads;
         private string? _ttl_attribute_name;
+        private readonly bool _createTableifNotExists;
 
         //Const values for columns
         public const string PRIMARY_KEY = "primary_key";//column that the key for the entry is stored
@@ -25,98 +26,94 @@ namespace AWS.DistributedCacheProvider
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBDistributedCache));
 
         /// <summary>
-        /// Constructor for DynamoDBDistributedCache. Do not use directly, use <see cref="DynamoDBDistributedCacheFactory"/> instead.
-        /// Data that required Internet IO is done with Lazy objects. This allows DI to be completed without depending on Async method calls
+        /// Constructor for DynamoDBDistributedCache.
         /// </summary>
-        /// <param name="lazyClient">Lazy lambda that either verifies the table or creates it if specified before returning an IAmazonDynamoDB</param>
-        /// <param name="options">Options that include configuartion data for the cache</param>
-        /// <param name="lazyTTLAttribute">Lazy Lambda that determines the TTL status of the table and what column to use for TTL</param>
+        /// <param name="client">DynamoDB Client</param>
+        /// <param name="creator">Creator class that is responsible for creating or validating the DynamoDB Table</param>
+        /// <param name="options">Configurable options for the cache</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public DynamoDBDistributedCache(Lazy<Task<IAmazonDynamoDB>> lazyClient, DynamoDBDistributedCacheOptions options, Lazy<Task<string>> lazyTTLAttribute)
+        public DynamoDBDistributedCache(IAmazonDynamoDB client, IDynamoDBTableCreator creator, DynamoDBDistributedCacheOptions options)
         {
-            if(lazyClient == null)
+            if(client == null)
             {
-                throw new ArgumentNullException(nameof(lazyClient));
+                throw new ArgumentNullException(nameof(client));
             }
             if(options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
-            _lazyClient = lazyClient;
-            _tableName = options.TableName;
+            if (creator == null)
+            {
+                throw new ArgumentNullException(nameof(creator));
+            }
+            _ddbClient = client;
+            _dynamodbTableCreator = creator;
             _consistentReads = options.ConsistentReads;
-            _lazyTTLAttribute = lazyTTLAttribute;
+            _tableName = options.TableName;
+            _ttl_attribute_name = options.TTLAttributeName;
+            _createTableifNotExists = options.CreateTableIfNotExists;
         }
 
         /// <summary>
-        /// Resolves Lazy lambdas passed in via constructor
+        /// Make sure the backing datastore is up and running before accepting client requests
         /// </summary>
-        private void ResolveLazy()
+        private async Task StartupAsync()
         {
-            try
+            //future PR. Make this Thread Safe
+            if(!_started)
             {
-                if (_ddbClient == null)
-                {
-                    _logger.InfoFormat("Resolving DynamoDBClient lazy object");
-                    _ddbClient = _lazyClient.Value.Result;
-                }
-                if (_ttl_attribute_name == null)
-                {
-                    _logger.InfoFormat("Resolving TTL attribute lazy object");
-                    _ttl_attribute_name = _lazyTTLAttribute.Value.Result ?? DEFAULT_TTL_ATTRIBUTE_NAME;
-                }
-            }
-            catch (AggregateException e)
-            {
-                throw e.InnerException;
+                //future PR. This should reduced to a single method call. If table is being created, no need for TTL describe...
+                await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttl_attribute_name);
+                _ttl_attribute_name = await _dynamodbTableCreator.GetTTLColumn(_ddbClient, _tableName);
+                _started = true;
             }
         }
         
         public byte[] Get(string key)
         {
-            ResolveLazy();
+            StartupAsync().GetAwaiter().GetResult();
             throw new NotImplementedException();
         }
 
-        public Task<byte[]> GetAsync(string key, CancellationToken token = default)
+        public async Task<byte[]> GetAsync(string key, CancellationToken token = default)
         {
-            ResolveLazy();
+            await StartupAsync();
             throw new NotImplementedException();
         }
 
         public void Refresh(string key)
         {
-            ResolveLazy();
+            StartupAsync().GetAwaiter().GetResult();
             throw new NotImplementedException();
         }
 
-        public Task RefreshAsync(string key, CancellationToken token = default)
+        public async Task RefreshAsync(string key, CancellationToken token = default)
         {
-            ResolveLazy();
+            await StartupAsync();
             throw new NotImplementedException();
         }
 
         public void Remove(string key)
         {
-            ResolveLazy();
+            StartupAsync().GetAwaiter().GetResult();
             throw new NotImplementedException();
         }
 
-        public Task RemoveAsync(string key, CancellationToken token = default)
+        public async Task RemoveAsync(string key, CancellationToken token = default)
         {
-            ResolveLazy();
+            await StartupAsync();
             throw new NotImplementedException();
         }
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            ResolveLazy();
+            StartupAsync().GetAwaiter().GetResult();
             throw new NotImplementedException();
         }
 
-        public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
+        public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
-            ResolveLazy();
+            await StartupAsync();
             throw new NotImplementedException();
         }
     }

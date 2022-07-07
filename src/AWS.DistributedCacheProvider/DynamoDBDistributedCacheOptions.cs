@@ -18,31 +18,21 @@ namespace AWS.DistributedCacheProvider
         public string TableName { get; set; }
 
         /// <summary>
-        /// Optional parameter. Enables Time To Live (TTL) feature on the DynamoDB Table when creating. Default is false
-        /// </summary>
-        public bool EnableTtl { get; set; }
-
-        /// <summary>
         /// Optional parameter. If the table tablename does not exist, create the table.  Default is false
         /// </summary>
         public bool CreateTableIfNotExists { get; set; }
 
         /// <summary>
-        /// Optional parameter. Must reads from the underlying Table be consistent  Default is false
+        /// Optional parameter. Must reads from the underlying Table be consistent  Default is true.
+        /// Having consistent reads means that any read will be from the latest data in the DynamoDB cluster.
+        /// However, it does come at a performance hit. Changing this to false means that inconsistent reads can occur.
         /// </summary>
-        public bool ConsistentReads { get; set; }
+        public bool ConsistentReads { get; set; } = true;
 
+        /// <summary>
+        /// Optional parameter. Name of the TTL column when Table is created here.
+        /// </summary>
         public string? TTLAttributeName { get; set; }
-
-        /// <summary>
-        /// Optional Parameter. Credentials to be used to load or create the DynamoDB Table
-        /// </summary>
-        public AWSCredentials? Credentials { get; set; }
-
-        /// <summary>
-        /// Optional Parameter. Configuration for a DynamoDB Client
-        /// </summary>
-        public AmazonDynamoDBConfig? DynamoConfig { get; set; }
 
         public DynamoDBDistributedCacheOptions Value
         {
