@@ -22,9 +22,9 @@ namespace AWS.DistributedCacheProviderUnitTests
             //mock describe table that table does not exist
             moqClient.Setup(x => x.DescribeTableAsync(It.IsAny<DescribeTableRequest>(), It.IsAny<CancellationToken>()))
                 .Throws(new ResourceNotFoundException(""));
-            var creator = new DynamoDBTableCreator(GetSleepMocker().Object);
+            var creator = new DynamoDBTableCreator();
             //create table, set create boolean to false.
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateIfNotExistsAsync(moqClient.Object, "", false, false, ""));
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
         }
 
         /// <summary>
@@ -41,14 +41,14 @@ namespace AWS.DistributedCacheProviderUnitTests
                 {
                     Table = new TableDescription
                     {
-                        TableStatus = "Active"
+                        TableStatus = TableStatus.ACTIVE
                     }
                 }));
             //mock create table that it returns immediately 
             moqClient.Setup(x => x.CreateTableAsync(It.IsAny<CreateTableRequest>(), It.IsAny<CancellationToken>()));
-            var creator = new DynamoDBTableCreator(GetSleepMocker().Object);
+            var creator = new DynamoDBTableCreator();
             //create table, set create boolean to true.
-            await creator.CreateIfNotExistsAsync(moqClient.Object, "", true, false, "");
+            await creator.CreateTableIfNotExistsAsync(moqClient.Object, "", true, "");
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                             new KeySchemaElement
                             {
                                 AttributeName = keyName,
-                                KeyType = "HASH"
+                                KeyType = KeyType.HASH
                             }
                         },
                         //And is of type String
@@ -79,13 +79,13 @@ namespace AWS.DistributedCacheProviderUnitTests
                             new AttributeDefinition
                             {
                                 AttributeName = keyName,
-                                AttributeType = "S"
+                                AttributeType = ScalarAttributeType.S
                             }
                         }
                     }
                 }));
-            var creator = new DynamoDBTableCreator(GetSleepMocker().Object);
-            await creator.CreateIfNotExistsAsync(moqClient.Object, "", false, false, "");
+            var creator = new DynamoDBTableCreator();
+            await creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "");
         }
 
         /// <summary>
@@ -94,6 +94,8 @@ namespace AWS.DistributedCacheProviderUnitTests
         [Fact]
         public void TableExists_TooManyKeys_Invalid()
         {
+            var key1 = "key";
+            var key2 = "key2";
             var moqClient = new Moq.Mock<IAmazonDynamoDB>();
             moqClient.Setup(x => x.DescribeTableAsync(It.IsAny<DescribeTableRequest>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(new DescribeTableResponse
@@ -105,32 +107,32 @@ namespace AWS.DistributedCacheProviderUnitTests
                         {
                             new KeySchemaElement
                             {
-                                AttributeName = "key",
-                                KeyType = "HASH"
+                                AttributeName = key1,
+                                KeyType = KeyType.HASH
                             },
                             new KeySchemaElement
                             {
-                                AttributeName = "key2",
-                                KeyType = "HASH"
+                                AttributeName = key2,
+                                KeyType = KeyType.HASH
                             }
                         },
                         AttributeDefinitions = new List<AttributeDefinition>
                         {
                             new AttributeDefinition
                             {
-                                AttributeName = "key",
-                                AttributeType = "S"
+                                AttributeName = key1,
+                                AttributeType = ScalarAttributeType.S
                             },
                             new AttributeDefinition
                             {
-                                AttributeName = "key2",
-                                AttributeType = "S"
+                                AttributeName = key2,
+                                AttributeType = ScalarAttributeType.S
                             }
                         }
                     }
                 }));
-            var creator = new DynamoDBTableCreator(GetSleepMocker().Object);
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateIfNotExistsAsync(moqClient.Object, "", false, false, ""));
+            var creator = new DynamoDBTableCreator();
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
         }
 
         /// <summary>
@@ -139,6 +141,7 @@ namespace AWS.DistributedCacheProviderUnitTests
         [Fact]
         public void TableExists_BadKeyAttributeType_Invalid()
         {
+            var key = "key";
             var moqClient = new Moq.Mock<IAmazonDynamoDB>();
             moqClient.Setup(x => x.DescribeTableAsync(It.IsAny<DescribeTableRequest>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(new DescribeTableResponse
@@ -150,8 +153,8 @@ namespace AWS.DistributedCacheProviderUnitTests
                             //Key is a non-composite Hash key
                             new KeySchemaElement
                             {
-                                AttributeName = "key",
-                                KeyType = "HASH"
+                                AttributeName = key,
+                                KeyType = KeyType.HASH
                             }
                         },
                         AttributeDefinitions = new List<AttributeDefinition>
@@ -159,14 +162,14 @@ namespace AWS.DistributedCacheProviderUnitTests
                             //But is of type Number
                             new AttributeDefinition
                             {
-                                AttributeName = "key",
-                                AttributeType = "N"
+                                AttributeName = key,
+                                AttributeType = ScalarAttributeType.N
                             }
                         }
                     }
                 }));
-            var creator = new DynamoDBTableCreator(GetSleepMocker().Object);
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateIfNotExistsAsync(moqClient.Object, "", false, false, ""));
+            var creator = new DynamoDBTableCreator();
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
         }
 
         /// <summary>
@@ -175,6 +178,7 @@ namespace AWS.DistributedCacheProviderUnitTests
         [Fact]
         public void TableExists_BadKeyType_Invalid()
         {
+            var key = "key";
             var moqClient = new Moq.Mock<IAmazonDynamoDB>();
             moqClient.Setup(x => x.DescribeTableAsync(It.IsAny<DescribeTableRequest>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(new DescribeTableResponse
@@ -186,33 +190,22 @@ namespace AWS.DistributedCacheProviderUnitTests
                         {
                             new KeySchemaElement
                             {
-                                AttributeName = "key",
-                                KeyType = "RANGE"
+                                AttributeName = key,
+                                KeyType = KeyType.RANGE
                             }
                         },
                         AttributeDefinitions = new List<AttributeDefinition>
                         {
                             new AttributeDefinition
                             {
-                                AttributeName = "key",
-                                AttributeType = "S"
+                                AttributeName = key,
+                                AttributeType = ScalarAttributeType.S
                             }
                         }
                     }
                 }));
-            var creator = new DynamoDBTableCreator(GetSleepMocker().Object);
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateIfNotExistsAsync(moqClient.Object, "", false, false, ""));
-        }
-
-        /// <summary>
-        /// Creates a Mock object of the IThreadSleeper class that immediatly returns when the IThreadSleeper.Sleep() method is called
-        /// </summary>
-        /// <returns>The Moq IThreadSleeper object</returns>
-        private Mock<IThreadSleeper> GetSleepMocker()
-        {
-            var sleepMoq = new Moq.Mock<IThreadSleeper>();
-            sleepMoq.Setup(x => x.Sleep(It.IsAny<int>()));
-            return sleepMoq;
+            var creator = new DynamoDBTableCreator();
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
         }
     }
 }
