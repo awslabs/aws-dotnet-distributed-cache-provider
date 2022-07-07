@@ -34,7 +34,7 @@ namespace AWS.DistributedCacheProvider
                 }
                 else
                 {
-                    throw new AmazonDynamoDBException($"Table {tableName} was not found to be used as cache and autocreate is turned off.");
+                    throw new InvalidTableException($"Table {tableName} was not found to be used as cache and autocreate is turned off.");
                 }
             }
         }
@@ -43,7 +43,7 @@ namespace AWS.DistributedCacheProvider
         /// Verifies that the key schema for this table is a non-composite, Hash key of type String.
         /// </summary>
         /// <param name="description">A table description <see cref="TableDescription"/></param>
-        /// <exception cref="AmazonDynamoDBException">Thrown when key Schema is invalid</exception>
+        /// <exception cref="InvalidTableException">Thrown when key Schema is invalid</exception>
         private void ValidateTable(TableDescription description)
         {
             var foundValidKey = false;
@@ -51,7 +51,7 @@ namespace AWS.DistributedCacheProvider
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
                 {
-                    throw new AmazonDynamoDBException($"Table {description.TableName} cannot be used as a cache because it contains a range key in its schema.");
+                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it contains a range key in its schema.");
                 }
                 else //We know the key is of type Hash
                 {
@@ -67,13 +67,13 @@ namespace AWS.DistributedCacheProvider
                                 }
                                 else
                                 {
-                                    throw new AmazonDynamoDBException($"Table {description.TableName} cannot be used as a cache because it does not define a single hash key");
+                                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it does not define a single hash key");
                                 }
                                 break;//Only one attribute can match the key by name, so no need to continue searching
                             }
                             else
                             {
-                                throw new AmazonDynamoDBException($"Table {description.TableName} cannot be used as a cache because hash key is not a string.");
+                                throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because hash key is not a string.");
                             }
                         }
                     }
