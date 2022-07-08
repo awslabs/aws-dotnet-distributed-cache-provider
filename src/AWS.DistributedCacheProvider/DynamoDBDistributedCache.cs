@@ -62,10 +62,21 @@ namespace AWS.DistributedCacheProvider
             //future PR. Make this Thread Safe
             if(!_started)
             {
-                //future PR. This should reduced to a single method call. If table is being created, no need for TTL describe...
-                await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
-                _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumn(_ddbClient, _tableName);
-                _started = true;
+                System.Threading.Monitor.Enter(this);
+                try
+                {
+                    if (!_started)
+                    {
+                        //future PR. This should reduced to a single method call. If table is being created, no need for TTL describe...
+                        await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
+                        _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumn(_ddbClient, _tableName);
+                        _started = true;
+                    }
+                }
+                finally
+                {
+                    System.Threading.Monitor.Exit(this);
+                }
             }
         }
         
