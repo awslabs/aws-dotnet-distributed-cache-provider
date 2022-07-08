@@ -46,7 +46,6 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException">Thrown when key Schema is invalid</exception>
         private void ValidateTable(TableDescription description)
         {
-            var foundValidKey = false;
             foreach (var key in description.KeySchema)
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
@@ -58,26 +57,10 @@ namespace AWS.DistributedCacheProvider
                 {
                     foreach (var attributeDef in description.AttributeDefinitions)
                     {
-                        if (attributeDef.AttributeName.Equals(key.AttributeName))
+                        if (attributeDef.AttributeName.Equals(key.AttributeName) && attributeDef.AttributeType != ScalarAttributeType.S)
                         {
-                            if (attributeDef.AttributeType == ScalarAttributeType.S)
-                            {
-                                if (!foundValidKey)
-                                {
-                                    foundValidKey = true;
-                                }
-                                else
-                                {
-                                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it " +
-                                        $"does not define a single hash key. Cache requires a non-composite Hash key of type String.");
-                                }
-                                break;//Only one attribute can match the key by name, so no need to continue searching
-                            }
-                            else
-                            {
-                                throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because hash key " +
-                                    $"is not a string. Cache requires a non-composite Hash key of type String.");
-                            }
+                            throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because hash key " +
+                                 $"is not a string. Cache requires a non-composite Hash key of type String.");
                         }
                     }
                 }
