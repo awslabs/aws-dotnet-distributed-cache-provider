@@ -26,6 +26,6 @@ namespace AWS.DistributedCacheProvider
         /// <param name="client">DynamoDB client.</param>
         /// <param name="tableName">Name of the table.</param>
         /// <returns>The name of the TTL column for this table</returns>
-        public Task<string> GetTTLColumn(IAmazonDynamoDB client, string tableName);
+        public Task<string> GetTTLColumnAsync(IAmazonDynamoDB client, string tableName);
     }
 }

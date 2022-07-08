@@ -30,7 +30,7 @@ namespace AWS.DistributedCacheProvider
                 _logger.InfoFormat("Table does not exist");
                 if (create)
                 {
-                    await CreateTable(client, tableName, ttlAttribute);
+                    await CreateTableAsync(client, tableName, ttlAttribute);
                 }
                 else
                 {
@@ -73,7 +73,7 @@ namespace AWS.DistributedCacheProvider
         /// <param name="client">DynamoDB client</param>
         /// <param name="tableName">Table name</param>
         /// <param name="ttlAttribute">TTL attribute name</param>
-        private async Task CreateTable(IAmazonDynamoDB client, string tableName, string ttlAttribute)
+        private async Task CreateTableAsync(IAmazonDynamoDB client, string tableName, string ttlAttribute)
         {
             var createRequest = new CreateTableRequest
             {
@@ -128,7 +128,7 @@ namespace AWS.DistributedCacheProvider
         }
 
         /// <inheritdoc/>
-        public async Task<string> GetTTLColumn(IAmazonDynamoDB client, string tableName)
+        public async Task<string> GetTTLColumnAsync(IAmazonDynamoDB client, string tableName)
         {
             var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)

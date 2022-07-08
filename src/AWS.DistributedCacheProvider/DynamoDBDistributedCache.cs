@@ -69,7 +69,7 @@ namespace AWS.DistributedCacheProvider
                     {
                         //future PR. This should reduced to a single method call. If table is being created, no need for TTL describe...
                         await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
-                        _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumn(_ddbClient, _tableName);
+                        _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
                         _started = true;
                     }
                 }
