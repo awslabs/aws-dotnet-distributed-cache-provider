@@ -51,7 +51,8 @@ namespace AWS.DistributedCacheProvider
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
                 {
-                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it contains a range key in its schema. Cache requires a non-composite Hash key of type String.");
+                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it contains" +
+                        $" a range key in its schema. Cache requires a non-composite Hash key of type String.");
                 }
                 else //We know the key is of type Hash
                 {
@@ -67,13 +68,15 @@ namespace AWS.DistributedCacheProvider
                                 }
                                 else
                                 {
-                                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it does not define a single hash key. Cache requires a non-composite Hash key of type String.");
+                                    throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it " +
+                                        $"does not define a single hash key. Cache requires a non-composite Hash key of type String.");
                                 }
                                 break;//Only one attribute can match the key by name, so no need to continue searching
                             }
                             else
                             {
-                                throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because hash key is not a string. Cache requires a non-composite Hash key of type String.");
+                                throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because hash key " +
+                                    $"is not a string. Cache requires a non-composite Hash key of type String.");
                             }
                         }
                     }

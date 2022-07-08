@@ -3,8 +3,9 @@ using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Xunit;
+using Xunit.Sdk;
+
 namespace AWS.DistributedCacheProviderIntegrationTests
 {
     public class DynamoDBDistributedCacheTableTests
@@ -22,7 +23,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             {
                 _ = await client.DescribeTableAsync(tableName);
                 //If no exception was thrown, then the table already exists, bad state for test.
-                Assert.True(false);
+                throw new XunitException("Table already exists, cannot create table");
             }
             catch (ResourceNotFoundException) {}
             var cache = GetCache(options =>
