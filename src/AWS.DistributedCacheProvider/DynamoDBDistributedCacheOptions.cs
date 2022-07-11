@@ -6,13 +6,13 @@ using Microsoft.Extensions.Options;
 namespace AWS.DistributedCacheProvider
 {
     /// <summary>
-    /// Configurable parameters for DynamoDBDistributedCacheOptions
+    /// Configurable parameters for DynamoDBDistributedCache
     /// </summary>
     public class DynamoDBDistributedCacheOptions : IOptions<DynamoDBDistributedCacheOptions>
     {
-        /// <summery>
+        /// <summary>
         /// Required parameter. The name of the backing DynamoDB Table. Cannot be Null or Empty
-        /// </summery>
+        /// </summary>
         public string TableName { get; set; }
 
         /// <summary>

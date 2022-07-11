@@ -7,9 +7,14 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class ExtentionMethods
+    public static class ExtensionMethods
     {
-
+        /// <summary>
+        /// Injects <see cref="DynamoDBDistributedCache" /> as the implementation for <see cref="IDistributedCache"/>.
+        /// </summary>
+        /// <param name="services">The current ServiceCollection</param>
+        /// <param name="tablename">The name of the table to be used in the cache</param>
+        /// <returns></returns>
         public static IServiceCollection AddAWSDynamoDBDistributedCache(this IServiceCollection services, string tablename)
         {
             return AddAWSDynamoDBDistributedCache(services, options =>
@@ -19,10 +24,10 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Injects <see cref="DynamoDBDistributedCache" /> as the implementation for <see cref="IDistributedCache"/>. Uses <see cref="DynamoDBDistributedCacheFactory"/> to create the cache.
+        /// Injects <see cref="DynamoDBDistributedCache" /> as the implementation for <see cref="IDistributedCache"/>.
         /// </summary>
-        /// <param name="services"></param>
-        /// <param name="action"></param>
+        /// <param name="services">The current ServiceCollection</param>
+        /// <param name="action">An Action to configure the parameters of <see cref="DynamoDBDistributedCacheOptions"/> for the cache</param>
         /// <exception cref="ArgumentNullException"></exception>
         public static IServiceCollection AddAWSDynamoDBDistributedCache(this IServiceCollection services, Action<DynamoDBDistributedCacheOptions>? action = null)
         {

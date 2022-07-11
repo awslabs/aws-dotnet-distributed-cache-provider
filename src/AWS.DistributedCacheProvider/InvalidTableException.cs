@@ -3,8 +3,11 @@
 
 namespace AWS.DistributedCacheProvider
 {
+    /// <summary>
+    /// An Exception that is thrown when the Configuration points to a DynamoDB table that is not suitable for a cache
+    /// </summary>
     [Serializable]
-    public  class InvalidTableException : Exception
+    public class InvalidTableException : Exception
     {
         public InvalidTableException() { }
 

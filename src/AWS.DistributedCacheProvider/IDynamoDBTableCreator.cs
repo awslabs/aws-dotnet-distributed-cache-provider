@@ -9,7 +9,7 @@ namespace AWS.DistributedCacheProvider
         /// <summary>
         /// Tests first to see if Table <paramref name="tableName"/>" exists.
         /// If it does exist, check to see if the table is valid to serve as a cache.
-        /// Requirments are that the table contain a non-composite Hash key of type String
+        /// Requirements are that the table contain a non-composite Hash key of type String
         /// If the table does not exist, and <paramref name="create"/> is set to true, then create the table
         /// When creating a table, TTL is turned on using the <paramref name="TtlAttribute"/> name for the TTL column.
         /// If <paramref name="TtlAttribute"/> is not set, a default value will be used.

@@ -7,7 +7,7 @@ using Amazon.Runtime.Internal.Util;
 
 namespace AWS.DistributedCacheProvider
 {
-    public class DynamoDBTableCreator : IDynamoDBTableCreator
+    internal class DynamoDBTableCreator : IDynamoDBTableCreator
     {
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBTableCreator));
 

@@ -10,32 +10,40 @@ namespace AWS.DistributedCacheProviderIntegrationTests
 {
     public class DynamoDBDistributedCacheTableTests
     {
+        private readonly static string TABLE_NAME_PREFIX = "AWS.DistributedCacheProviderIntegrationTests_";
+
         /// <summary>
         /// Tests that our factory will create a Table if it does not already exist.
         /// </summary>
         [Fact]
         public async void CreateTable()
         {
-            var tableName = "table_test_0";
+            var tableName = TABLE_NAME_PREFIX + "table_test_0";
             var client = new AmazonDynamoDBClient();
-            //First verify that a table with this name does not already exist.
             try
             {
-                _ = await client.DescribeTableAsync(tableName);
-                //If no exception was thrown, then the table already exists, bad state for test.
-                throw new XunitException("Table already exists, cannot create table");
+                //First verify that a table with this name does not already exist.
+                try
+                {
+                    _ = await client.DescribeTableAsync(tableName);
+                    //If no exception was thrown, then the table already exists, bad state for test.
+                    throw new XunitException("Table already exists, cannot create table");
+                }
+                catch (ResourceNotFoundException) { }
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = true;
+                });
+                //With lazy implementation, table creation is delayed until the client actually needs it.
+                //resolving the table should pass. We then have a NotImplementedException until we implement CRUD operations.
+                Assert.Throws<NotImplementedException>(() => cache.Get(""));
             }
-            catch (ResourceNotFoundException) {}
-            var cache = GetCache(options =>
+            finally
             {
-                options.TableName = tableName;
-                options.CreateTableIfNotExists = true;
-            });
-            //With lazy implementation, table creation is delayed until the client actually needs it.
-            //resolving the table should pass. We then have a NotImplementedException until we implement CRUD operations.
-            Assert.Throws<NotImplementedException>(() => cache.Get(""));
-            //Delete DynamoDB table
-            CleanupTable(client, tableName);
+                //Delete DynamoDB table
+                CleanupTable(client, tableName);
+            }
         }
 
         /// <summary>
@@ -45,41 +53,46 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         public async void LoadValidTableTest()
         {
             var key = "key";
-            var tableName = "table_test_1";
+            var tableName = TABLE_NAME_PREFIX + "table_test_1";
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
             var request = new CreateTableRequest
             {
                 TableName = tableName,
                 KeySchema = new List<KeySchemaElement>
+            {
+                new KeySchemaElement
                 {
-                    new KeySchemaElement
-                    {
-                        AttributeName = key,
-                        KeyType = KeyType.HASH
-                    }
-                },
+                    AttributeName = key,
+                    KeyType = KeyType.HASH
+                }
+            },
                 AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new AttributeDefinition
                 {
-                    new AttributeDefinition
-                    {
-                        AttributeName = key,
-                        AttributeType = ScalarAttributeType.S
-                    }
-                },
+                    AttributeName = key,
+                    AttributeType = ScalarAttributeType.S
+                }
+            },
                 BillingMode = BillingMode.PAY_PER_REQUEST
             };
-            //create the table here.
-            await CreateAndWaitUntilActive(client, request);
-            var cache = GetCache(options =>
+            try { 
+                //create the table here.
+                await CreateAndWaitUntilActive(client, request);
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = false;
+                });
+                //With lazy implementation, table creation is delayed until the client actually needs it.
+                //resolving the table should pass. We then have a NotImplementedException until we implement CRUD operations.
+                Assert.Throws<NotImplementedException>(() => cache.Get(""));
+            }
+            finally
             {
-                options.TableName = tableName;
-                options.CreateTableIfNotExists = false;
-            });
-            //With lazy implementation, table creation is delayed until the client actually needs it.
-            //resolving the table should pass. We then have a NotImplementedException until we implement CRUD operations.
-            Assert.Throws<NotImplementedException>(() => cache.Get(""));
-            CleanupTable(client, tableName);
+                CleanupTable(client, tableName);
+            }
         }
 
         /// <summary>
@@ -90,7 +103,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             var key1 = "key";
             var key2 = "key2";
-            var tableName = "table_test_2";
+            var tableName = TABLE_NAME_PREFIX + "table_test_2";
             var client = new AmazonDynamoDBClient();
             var request = new CreateTableRequest
             //Invalid becuase key is non-composite
@@ -124,17 +137,23 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 },
                 BillingMode = BillingMode.PAY_PER_REQUEST
             };
-            //Create table here
-            await CreateAndWaitUntilActive(client, request);
-            var cache = GetCache(options =>
+            try
             {
-                options.TableName = tableName;
-                options.CreateTableIfNotExists = false;
-            });
-            //With lazy implementation, table creation is delayed until the client actually needs it.
-            //resolving the table should not pass as the key is invalid.
-            Assert.Throws<AmazonDynamoDBException>(() => cache.Get(""));
-            CleanupTable(client, tableName);
+                //Create table here
+                await CreateAndWaitUntilActive(client, request);
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = false;
+                });
+                //With lazy implementation, table creation is delayed until the client actually needs it.
+                //resolving the table should not pass as the key is invalid.
+                Assert.Throws<AmazonDynamoDBException>(() => cache.Get(""));
+            }
+            finally
+            {
+                CleanupTable(client, tableName);
+            }
         }
 
         /// <summary>
@@ -144,7 +163,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         public async void LoadInvalidTable_BadKeyTypeTest()
         {
             var key = "key";
-            var tableName = "table_test_3";
+            var tableName = TABLE_NAME_PREFIX + "table_test_3";
             var client = new AmazonDynamoDBClient();
             var request = new CreateTableRequest
             {
@@ -167,16 +186,22 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 },
                 BillingMode = BillingMode.PAY_PER_REQUEST
             };
-            await CreateAndWaitUntilActive(client, request);
-            var cache = GetCache(options =>
+            try
             {
-                options.TableName = tableName;
-                options.CreateTableIfNotExists = false;
-            });
-            //With lazy implementation, table creation is delayed until the client actually needs it.
-            //resolving the table should not pass as the key is invalid.
-            Assert.Throws<AmazonDynamoDBException>(() => cache.Get(""));
-            CleanupTable(client, tableName);
+                await CreateAndWaitUntilActive(client, request);
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = false;
+                });
+                //With lazy implementation, table creation is delayed until the client actually needs it.
+                //resolving the table should not pass as the key is invalid.
+                Assert.Throws<AmazonDynamoDBException>(() => cache.Get(""));
+            }
+            finally
+            {
+                CleanupTable(client, tableName);
+            }
         }
 
         private async Task CreateAndWaitUntilActive(AmazonDynamoDBClient client, CreateTableRequest request)
