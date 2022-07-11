@@ -20,8 +20,4 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-<<<<<<< HEAD
       run: dotnet test --no-build --verbosity normal --filter "UnitTests"
-=======
-      run: dotnet test --no-build --verbosity normal --filter "UnitTests"
->>>>>>> 1510bbc (update to test line to use filter)
