@@ -3,6 +3,7 @@
 using Amazon.Runtime.Internal.Util;
 using Amazon.DynamoDBv2;
 using Microsoft.Extensions.Caching.Distributed;
+using Amazon.DynamoDBv2.Model;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -21,7 +22,10 @@ namespace AWS.DistributedCacheProvider
         //Const values for columns
         public const string PRIMARY_KEY = "primary_key";//column that the key for the entry is stored
         public const string DEFAULT_TTL_ATTRIBUTE_NAME = "expdate";
-
+        private const string VALUE_KEY = "value_key";
+        private const string TTL_DATE = "ttl_date";
+        private const string TTL_WINDOW = "ttl_window";
+        private const string TTL_DEADLINE = "ttl_deadline";
 
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBDistributedCache));
 
@@ -82,50 +86,248 @@ namespace AWS.DistributedCacheProvider
         
         public byte[] Get(string key)
         {
-            StartupAsync().GetAwaiter().GetResult();
-            throw new NotImplementedException();
+            return GetAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public async Task<byte[]> GetAsync(string key, CancellationToken token = default)
+        public Task<byte[]> GetAsync(string key, CancellationToken token = default)
         {
-            await StartupAsync();
-            throw new NotImplementedException();
+            StartupAsync().GetAwaiter().GetResult();
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            var getRequest = new GetItemRequest
+            {
+                TableName = _tableName,
+                Key = new Dictionary<string, AttributeValue>()
+                {
+                    {
+                        PRIMARY_KEY, new AttributeValue { S = key }
+                    }
+                },
+                ConsistentRead = _consistentReads
+            };
+            var resp = _ddbClient.GetItemAsync(getRequest, token);
+            return resp.ContinueWith<byte[]>(p =>
+            {
+                if (p.Result.Item.ContainsKey(VALUE_KEY))
+                {
+                    //Do we check if TTL has expired but is still present on the table?
+                    return p.Result.Item[VALUE_KEY].B.ToArray();
+                }
+                else
+                {
+                    return null;
+                }
+            });
         }
 
         public void Refresh(string key)
         {
-            StartupAsync().GetAwaiter().GetResult();
-            throw new NotImplementedException();
+            RefreshAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public async Task RefreshAsync(string key, CancellationToken token = default)
+        public Task RefreshAsync(string key, CancellationToken token = default)
         {
-            await StartupAsync();
-            throw new NotImplementedException();
+            StartupAsync().GetAwaiter().GetResult();
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            var getRequest = new GetItemRequest
+            {
+                TableName = _tableName,
+                Key = new Dictionary<string, AttributeValue>()
+                {
+                    {
+                        PRIMARY_KEY, new AttributeValue {S = key}
+                    }
+                },
+                ConsistentRead = _consistentReads
+            };
+            var task = _ddbClient.GetItemAsync(getRequest, token);
+            return task.ContinueWith(t =>
+            {
+                var response = t.Result.Item;
+                if (response[TTL_DATE] != null && response[TTL_WINDOW] != null && response[TTL_DEADLINE] != null)
+                {
+                    var ttl = (long)Convert.ToDouble(response[TTL_DATE].N);
+                    var window = TimeSpan.Parse(response[TTL_WINDOW].N);
+                    var absoluteTTL = (long)Convert.ToDouble(response[TTL_DEADLINE].N);
+                    var baseTTl = DateTimeOffset.UtcNow;
+                    //new ttl is min(now+window, deadline)
+                    var ttlFromBase = baseTTl.Add(window).ToUnixTimeSeconds();
+                    long calculatedTTL;
+                    if (ttlFromBase < absoluteTTL)
+                    {
+                        calculatedTTL = ttlFromBase;
+                    }
+                    else
+                    {
+                        calculatedTTL = absoluteTTL;
+                    }
+                    //take new ttl and rewrite the item back to dynamodb
+                    var options = new DistributedCacheEntryOptions()
+                    {
+                        AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(calculatedTTL),
+                        SlidingExpiration = window
+                    };
+                    return Task.FromResult(SetAsync(key, response[VALUE_KEY].B.ToArray(), options, token));
+                }
+                else
+                {
+                    //If there was no TTL ever set, or if there was no refresh amount, then we have nothing to do here
+                    return Task.CompletedTask;
+                }
+            });
         }
 
         public void Remove(string key)
         {
-            StartupAsync().GetAwaiter().GetResult();
-            throw new NotImplementedException();
+            RemoveAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public async Task RemoveAsync(string key, CancellationToken token = default)
+        public Task RemoveAsync(string key, CancellationToken token = default)
         {
-            await StartupAsync();
-            throw new NotImplementedException();
+            StartupAsync().GetAwaiter().GetResult();
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            var deleteRequest = new DeleteItemRequest
+            {
+                TableName = _tableName,
+                Key = new Dictionary<string, AttributeValue>()
+                {
+                    {
+                        PRIMARY_KEY, new AttributeValue {S = key }
+                    }
+                }
+            };
+            return _ddbClient.DeleteItemAsync(deleteRequest, token);
         }
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            StartupAsync().GetAwaiter().GetResult();
-            throw new NotImplementedException();
+            SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
+        public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
-            await StartupAsync();
-            throw new NotImplementedException();
+            StartupAsync().GetAwaiter().GetResult();
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+            var ttl = CalculateTTL(options);
+            var AbsoluteTtlDate = CalculateTTLDeadline(options);
+            var ttlWindow = CalculateSlidingWindow(options);
+            var request = new PutItemRequest
+            {
+                TableName = _tableName,
+                Item = new Dictionary<string, AttributeValue>()
+                {
+                    {
+                        PRIMARY_KEY, new AttributeValue{S = key}
+                    },
+                    {
+                        VALUE_KEY, new AttributeValue{ B = new MemoryStream(value)}
+                    },
+                    {
+                        TTL_DATE, ttl
+                    },
+                    {
+                        TTL_WINDOW, ttlWindow
+                    },
+                    {
+                        TTL_DEADLINE, AbsoluteTtlDate
+                    }
+                }
+            };
+            return _ddbClient.PutItemAsync(request, token);
+        }
+
+        private AttributeValue CalculateTTLDeadline(DistributedCacheEntryOptions options)
+        {
+            if (options.AbsoluteExpiration == null && options.AbsoluteExpirationRelativeToNow == null)
+            {
+                return new AttributeValue { NULL = true };
+            }
+            else if (options.AbsoluteExpiration != null && options.AbsoluteExpirationRelativeToNow == null)
+            {
+                var ttl = (DateTimeOffset)options.AbsoluteExpiration;
+                var now = DateTimeOffset.UtcNow;
+                if (now.CompareTo(ttl) < 0)//if ttl is before current time
+                {
+                    throw new Exception("AbsoluteExpiration cannot be before now");
+                }
+                else
+                {
+                    return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
+                }
+            }
+            else if (options.AbsoluteExpiration == null && options.AbsoluteExpirationRelativeToNow != null)
+            {
+                long ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow).ToUnixTimeSeconds();
+                return new AttributeValue { N = "" + ttl };
+            }
+            else //Both properties are not null. Default to AbsoluteExpirationRelativeToNow
+            {
+                long ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow).ToUnixTimeSeconds();
+                return new AttributeValue { N = "" + ttl };
+            }
+        }
+
+        private AttributeValue CalculateTTL(DistributedCacheEntryOptions options)
+        {
+            //if the sliding window is present, then now + window
+            if (options.SlidingExpiration != null)
+            {
+                var ttl = DateTimeOffset.UtcNow.Add(((TimeSpan)options.SlidingExpiration));
+                //Cannot be later than the deadline
+                var absoluteTTL = CalculateTTLDeadline(options);
+                if (absoluteTTL.NULL)
+                {
+                    return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
+                }
+                else //return smaller of the two. Either the TTL based on the sliding window or the deadline
+                {
+                    if (long.Parse(absoluteTTL.N) < ttl.ToUnixTimeSeconds())
+                    {
+                        return absoluteTTL;
+                    }
+                    else
+                    {
+                        return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
+                    }
+                }
+            }
+            else //just return the absolute TTL
+            {
+                return CalculateTTLDeadline(options);
+            }
+        }
+
+        private AttributeValue CalculateSlidingWindow(DistributedCacheEntryOptions options)
+        {
+            if (options.SlidingExpiration != null)
+            {
+                return new AttributeValue { S = options.SlidingExpiration.ToString() };
+            }
+            else
+            {
+                return new AttributeValue { NULL = true };
+            }
         }
     }
 }
