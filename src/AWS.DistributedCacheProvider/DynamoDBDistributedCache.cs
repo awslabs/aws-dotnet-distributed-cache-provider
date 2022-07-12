@@ -84,14 +84,16 @@ namespace AWS.DistributedCacheProvider
             }
         }
         
-        public byte[] Get(string key)
+        //<inheritdoc />
+        public byte[]? Get(string key)
         {
             return GetAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public Task<byte[]> GetAsync(string key, CancellationToken token = default)
+        //<inheritdoc />
+        public async Task<byte[]?> GetAsync(string key, CancellationToken token = default)
         {
-            StartupAsync().GetAwaiter().GetResult();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -107,29 +109,28 @@ namespace AWS.DistributedCacheProvider
                 },
                 ConsistentRead = _consistentReads
             };
-            var resp = _ddbClient.GetItemAsync(getRequest, token);
-            return resp.ContinueWith<byte[]>(p =>
+            var resp = await _ddbClient.GetItemAsync(getRequest, token);
+            if (resp.Item.ContainsKey(VALUE_KEY))
             {
-                if (p.Result.Item.ContainsKey(VALUE_KEY))
-                {
-                    //Do we check if TTL has expired but is still present on the table?
-                    return p.Result.Item[VALUE_KEY].B.ToArray();
-                }
-                else
-                {
-                    return null;
-                }
-            });
+                //Do we check if TTL has expired but is still present on the table?
+                return resp.Item[VALUE_KEY].B.ToArray();
+            }
+            else
+            {
+                return null;
+            }
         }
 
+        //<inheritdoc />
         public void Refresh(string key)
         {
             RefreshAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public Task RefreshAsync(string key, CancellationToken token = default)
+        //<inheritdoc />
+        public async Task RefreshAsync(string key, CancellationToken token = default)
         {
-            StartupAsync().GetAwaiter().GetResult();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -146,7 +147,7 @@ namespace AWS.DistributedCacheProvider
                 ConsistentRead = _consistentReads
             };
             var task = _ddbClient.GetItemAsync(getRequest, token);
-            return task.ContinueWith(t =>
+            _ = task.ContinueWith(async t =>
             {
                 var response = t.Result.Item;
                 if (response[TTL_DATE] != null && response[TTL_WINDOW] != null && response[TTL_DEADLINE] != null)
@@ -172,24 +173,21 @@ namespace AWS.DistributedCacheProvider
                         AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(calculatedTTL),
                         SlidingExpiration = window
                     };
-                    return Task.FromResult(SetAsync(key, response[VALUE_KEY].B.ToArray(), options, token));
-                }
-                else
-                {
-                    //If there was no TTL ever set, or if there was no refresh amount, then we have nothing to do here
-                    return Task.CompletedTask;
+                    await SetAsync(key, response[VALUE_KEY].B.ToArray(), options, token);
                 }
             });
         }
 
+        //<inheritdoc />
         public void Remove(string key)
         {
             RemoveAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        public Task RemoveAsync(string key, CancellationToken token = default)
+        //<inheritdoc />
+        public async Task RemoveAsync(string key, CancellationToken token = default)
         {
-            StartupAsync().GetAwaiter().GetResult();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -204,14 +202,16 @@ namespace AWS.DistributedCacheProvider
                     }
                 }
             };
-            return _ddbClient.DeleteItemAsync(deleteRequest, token);
+            await _ddbClient.DeleteItemAsync(deleteRequest, token);
         }
 
+        //<inheritdoc />
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
+        //<inheritdoc />
         public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
             StartupAsync().GetAwaiter().GetResult();
@@ -257,6 +257,12 @@ namespace AWS.DistributedCacheProvider
             return _ddbClient.PutItemAsync(request, token);
         }
 
+        /// <summary>
+        /// Caclulates the absolute Time To Live (TTL) given the <paramref name="options"/>
+        /// </summary>
+        /// <param name="options"></param>
+        /// <returns>An <see cref="AttributeValue"/> which contains either the absolute deadline TTL or nothing.</returns>
+        /// <exception cref="Exception">When the caclualted absolute deadline is in the past.</exception>
         private AttributeValue CalculateTTLDeadline(DistributedCacheEntryOptions options)
         {
             if (options.AbsoluteExpiration == null && options.AbsoluteExpirationRelativeToNow == null)
@@ -278,16 +284,21 @@ namespace AWS.DistributedCacheProvider
             }
             else if (options.AbsoluteExpiration == null && options.AbsoluteExpirationRelativeToNow != null)
             {
-                long ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow).ToUnixTimeSeconds();
+                var ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow).ToUnixTimeSeconds();
                 return new AttributeValue { N = "" + ttl };
             }
             else //Both properties are not null. Default to AbsoluteExpirationRelativeToNow
             {
-                long ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow).ToUnixTimeSeconds();
+                var ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow).ToUnixTimeSeconds();
                 return new AttributeValue { N = "" + ttl };
             }
         }
 
+        /// <summary>
+        /// Caclulates the TTL.
+        /// </summary>
+        /// <param name="options"></param>
+        /// <returns>An <see cref="AttributeValue"/> containting the TTL</returns>
         private AttributeValue CalculateTTL(DistributedCacheEntryOptions options)
         {
             //if the sliding window is present, then now + window
@@ -318,6 +329,12 @@ namespace AWS.DistributedCacheProvider
             }
         }
 
+        /// <summary>
+        /// Returns the sliding window of the TTL
+        /// </summary>
+        /// <param name="options"></param>
+        /// <returns>An <see cref="AttributeValue"/> which either contains a string version of the sliding window <see cref="TimeSpan"/>
+        ///  or nothing</returns>
         private AttributeValue CalculateSlidingWindow(DistributedCacheEntryOptions options)
         {
             if (options.SlidingExpiration != null)
