@@ -147,7 +147,7 @@ namespace AWS.DistributedCacheProvider
                 ConsistentRead = _consistentReads
             };
             var task = _ddbClient.GetItemAsync(getRequest, token);
-            _ = task.ContinueWith(async t =>
+            var task2 = task.ContinueWith(async t =>
             {
                 var response = t.Result.Item;
                 if (response[TTL_DATE] != null && response[TTL_WINDOW] != null && response[TTL_DEADLINE] != null)
@@ -176,6 +176,7 @@ namespace AWS.DistributedCacheProvider
                     await SetAsync(key, response[VALUE_KEY].B.ToArray(), options, token);
                 }
             });
+            task2.Wait(token);
         }
 
         //<inheritdoc />
