@@ -4,6 +4,7 @@ using Amazon.Runtime.Internal.Util;
 using Amazon.DynamoDBv2;
 using Microsoft.Extensions.Caching.Distributed;
 using Amazon.DynamoDBv2.Model;
+using AWS.DistributedCacheProvider.Internal;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -12,7 +13,8 @@ namespace AWS.DistributedCacheProvider
         private readonly IAmazonDynamoDB _ddbClient;
         private readonly IDynamoDBTableCreator _dynamodbTableCreator;
         private bool _started;
-        private static readonly object loc = new ();
+        private readonly object _lock = new ();
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         //configurable values
         private string _tableName { get; }
@@ -62,11 +64,12 @@ namespace AWS.DistributedCacheProvider
         /// <summary>
         /// Make sure the backing datastore is up and running before accepting client requests
         /// </summary>
-        private void Startup()
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
+        private async Task StartupAsync()
         {
             if(!_started)
             {
-                System.Threading.Monitor.Enter(loc);
+                await _semaphore.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     if (!_started)
@@ -78,7 +81,7 @@ namespace AWS.DistributedCacheProvider
                 }
                 finally
                 {
-                    System.Threading.Monitor.Exit(loc);
+                    _semaphore.Release();
                 }
             }
         }
@@ -88,6 +91,7 @@ namespace AWS.DistributedCacheProvider
         ///DynamoDB's TTL policy is such that it can take items up to 48 hours to be deleted when they expire.
         ///As such, if an item's TTL has expired, but still happens to be on the table, this will still return null.
         /// </summary>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public byte[]? Get(string key)
         {
             return GetAsync(key, new CancellationToken()).GetAwaiter().GetResult();
@@ -98,28 +102,24 @@ namespace AWS.DistributedCacheProvider
         ///As such, if an item's TTL has expired, but still happens to be on the table, this will still return null.
         /// </summary>
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task<byte[]?> GetAsync(string key, CancellationToken token = default)
         {
-            Startup();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var getRequest = new GetItemRequest
+            var getRequest = CreateGetItemRequest(key);
+            GetItemResponse resp;
+            try
             {
-                TableName = _tableName,
-                Key = new Dictionary<string, AttributeValue>()
-                {
-                    {
-                        PRIMARY_KEY, new AttributeValue { S = key }
-                    }
-                },
-                ConsistentRead = _consistentReads
-            };
-            var resp = await ActAndHandleException<GetItemResponse>(async () =>
+               resp = await _ddbClient.GetItemAsync(getRequest, token);
+            }
+            catch(AmazonDynamoDBException e)
             {
-                return await _ddbClient.GetItemAsync(getRequest, token);
-            });
+                throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
+            }
             if (resp.Item.ContainsKey(VALUE_KEY))
             {
                 //Check even if the Item is present, but its TTL has expired. DynamoDB can take up to 48 hours to remove expired items
@@ -137,6 +137,8 @@ namespace AWS.DistributedCacheProvider
         }
 
         //<inheritdoc />
+        /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Refresh(string key)
         {
             RefreshAsync(key, new CancellationToken()).GetAwaiter().GetResult();
@@ -144,52 +146,41 @@ namespace AWS.DistributedCacheProvider
 
         //<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task RefreshAsync(string key, CancellationToken token = default)
         {
-            Startup();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var getRequest = new GetItemRequest
+            var getRequest = CreateGetItemRequest(key);
+            GetItemResponse resp;
+            try
             {
-                TableName = _tableName,
-                Key = new Dictionary<string, AttributeValue>()
-                {
-                    {
-                        PRIMARY_KEY, new AttributeValue {S = key}
-                    }
-                },
-                ConsistentRead = _consistentReads
-            };
-            var response = (await ActAndHandleException<GetItemResponse>(async () =>
+                resp = await _ddbClient.GetItemAsync(getRequest, token);
+            }
+            catch (AmazonDynamoDBException e)
             {
-                return await _ddbClient.GetItemAsync(getRequest, token);
-            })).Item;
-            if (response[TTL_WINDOW].S != null)
+                throw new DynamoDBDistributedCacheException($"Failed to get item with key {key}. Caused by {e.Message}", e);
+            }
+            if (resp.Item[TTL_WINDOW].S != null)
             {
                 var options = new DistributedCacheEntryOptions
                 {
-                    SlidingExpiration = TimeSpan.Parse(response[TTL_WINDOW].S),
+                    SlidingExpiration = TimeSpan.Parse(resp.Item[TTL_WINDOW].S),
                 };
                 //My impression is that there is a way to simply this into one line in the DistributedCacheEntryOptions constructor
-                if (response[TTL_DEADLINE].N != null)
+                if (resp.Item[TTL_DEADLINE].N != null)
                 {
-                    options.AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds((long)Convert.ToDouble(response[TTL_DEADLINE].N));
+                    options.AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds((long)Convert.ToDouble(resp.Item[TTL_DEADLINE].N));
                 }
-                var ttl = CalculateTTL(options);
-                await ActAndHandleException<Task>(async () =>
+                var ttl = DynamoDBCacheProviderHelper.CalculateTTL(options);
+                var updateRequest = new UpdateItemRequest
                 {
-                    await _ddbClient.UpdateItemAsync(new UpdateItemRequest
-                    {
-                        TableName = _tableName,
-                        Key = new Dictionary<string, AttributeValue>
-                    {
-                        {
-                            PRIMARY_KEY, new AttributeValue {S = key}
-                        }
-                    },
-                        AttributeUpdates = new Dictionary<string, AttributeValueUpdate>
+                    TableName = _tableName,
+                    Key = CreateDictionaryWithPrimaryKey(key),
+                    AttributeUpdates = new Dictionary<string, AttributeValueUpdate>
                     {
                         //On refresh we only move the TTL_DATE, the TTL_WINDOW and TTL_DEADLINE stay the same
                         {
@@ -199,13 +190,21 @@ namespace AWS.DistributedCacheProvider
                             }
                         }
                     }
-                    });
-                    return Task.CompletedTask;
-                });
+                };
+                try
+                {
+                    await _ddbClient.UpdateItemAsync(updateRequest);
+                }
+                catch(AmazonDynamoDBException e)
+                {
+                    throw new DynamoDBDistributedCacheException($"Failed to refresh the TTL for the cache item: {e.Message}", e);
+                }
             }
         }
 
         //<inheritdoc />
+        /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Remove(string key)
         {
             RemoveAsync(key, new CancellationToken()).GetAwaiter().GetResult();
@@ -213,31 +212,28 @@ namespace AWS.DistributedCacheProvider
 
         //<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task RemoveAsync(string key, CancellationToken token = default)
         {
-            Startup();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var deleteRequest = new DeleteItemRequest
-            {
-                TableName = _tableName,
-                Key = new Dictionary<string, AttributeValue>()
-                {
-                    {
-                        PRIMARY_KEY, new AttributeValue {S = key }
-                    }
-                }
-            };
-            await ActAndHandleException<Task>(async () =>
+            var deleteRequest = CreateDeleteItemRequest(key);
+            try
             {
                 await _ddbClient.DeleteItemAsync(deleteRequest, token);
-                return Task.CompletedTask;
-            });
+            }
+            catch (AmazonDynamoDBException e)
+            {
+                throw new DynamoDBDistributedCacheException($"Failed to delete item with key {key}, Caused by {e.Message}", e);
+            }
         }
 
         //<inheritdoc />
+        /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
@@ -245,9 +241,10 @@ namespace AWS.DistributedCacheProvider
 
         //<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
+        /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
-            Startup();
+            await StartupAsync();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -262,9 +259,6 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(options));
             }
-            var ttl = CalculateTTL(options);
-            var AbsoluteTtlDate = CalculateTTLDeadline(options);
-            var ttlWindow = CalculateSlidingWindow(options);
             var request = new PutItemRequest
             {
                 TableName = _tableName,
@@ -277,122 +271,65 @@ namespace AWS.DistributedCacheProvider
                         VALUE_KEY, new AttributeValue{ B = new MemoryStream(value)}
                     },
                     {
-                        TTL_DATE, ttl
+                        TTL_DATE, DynamoDBCacheProviderHelper.CalculateTTL(options)
                     },
                     {
-                        TTL_WINDOW, ttlWindow
+                        TTL_WINDOW, DynamoDBCacheProviderHelper.CalculateSlidingWindow(options)
                     },
                     {
-                        TTL_DEADLINE, AbsoluteTtlDate
+                        TTL_DEADLINE, DynamoDBCacheProviderHelper.CalculateTTLDeadline(options)
                     }
                 }
             };
-            await ActAndHandleException<Task>(async () =>
-            {
-                await _ddbClient.PutItemAsync(request, token);
-                return Task.CompletedTask;
-            });
-        }
-
-        /// <summary>
-        /// Calculates the absolute Time To Live (TTL) given the <paramref name="options"/>
-        /// </summary>
-        /// <param name="options"></param>
-        /// <returns>An <see cref="AttributeValue"/> which contains either the absolute deadline TTL or nothing.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">When the caclualted absolute deadline is in the past.</exception>
-        private AttributeValue CalculateTTLDeadline(DistributedCacheEntryOptions options)
-        {
-            if (options.AbsoluteExpiration == null && options.AbsoluteExpirationRelativeToNow == null)
-            {
-                return new AttributeValue { NULL = true };
-            }
-            else if (options.AbsoluteExpiration != null && options.AbsoluteExpirationRelativeToNow == null)
-            {
-                var ttl = (DateTimeOffset)options.AbsoluteExpiration;
-                var now = DateTimeOffset.UtcNow;
-                if (now.CompareTo(ttl) > 0)//if ttl is before current time
-                {
-                     throw new ArgumentOutOfRangeException("AbsoluteExpiration must be in the future.");
-                }
-                else
-                {
-                    return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
-                }
-            }//AbsoluteExpirationRelativeToNow is not null, regardless of what AbsoluteExpiration is set to, we prefer AbsoluteExpirationRelativeToNow
-            else
-            {
-                var ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow!).ToUnixTimeSeconds();
-                return new AttributeValue { N = "" + ttl };
-            }
-        }
-
-        /// <summary>
-        /// Calculates the TTL.
-        /// </summary>
-        /// <param name="options"></param>
-        /// <returns>An <see cref="AttributeValue"/> containting the TTL</returns>
-        private AttributeValue CalculateTTL(DistributedCacheEntryOptions options)
-        {
-            //if the sliding window is present, then now + window
-            if (options.SlidingExpiration != null)
-            {
-                var ttl = DateTimeOffset.UtcNow.Add(((TimeSpan)options.SlidingExpiration));
-                //Cannot be later than the deadline
-                var absoluteTTL = CalculateTTLDeadline(options);
-                if (absoluteTTL.NULL)
-                {
-                    return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
-                }
-                else //return smaller of the two. Either the TTL based on the sliding window or the deadline
-                {
-                    if (long.Parse(absoluteTTL.N) < ttl.ToUnixTimeSeconds())
-                    {
-                        return absoluteTTL;
-                    }
-                    else
-                    {
-                        return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
-                    }
-                }
-            }
-            else //just return the absolute TTL
-            {
-                return CalculateTTLDeadline(options);
-            }
-        }
-
-        /// <summary>
-        /// Returns the sliding window of the TTL
-        /// </summary>
-        /// <param name="options"></param>
-        /// <returns>An <see cref="AttributeValue"/> which either contains a string version of the sliding window <see cref="TimeSpan"/>
-        ///  or nothing</returns>
-        private AttributeValue CalculateSlidingWindow(DistributedCacheEntryOptions options)
-        {
-            if (options.SlidingExpiration != null)
-            {
-                return new AttributeValue { S = options.SlidingExpiration.ToString() };
-            }
-            else
-            {
-                return new AttributeValue { NULL = true };
-            }
-        }
-
-        /// <summary>
-        /// Completes the <paramref name="action"/> and wraps any <see cref="AmazonDynamoDBException"/> in a <see cref="DynamoDBDistributedCacheException"/>
-        /// </summary>
-        /// <exception cref="DynamoDBDistributedCacheException"> When the <paramref name="action"/> throws a <see cref="DynamoDBDistributedCacheException"/></exception>
-        private async Task<T> ActAndHandleException<T>(Func<Task<T>> action)
-        {
             try
             {
-                return await action();
+                await _ddbClient.PutItemAsync(request, token);
             }
             catch (AmazonDynamoDBException e)
             {
-                throw new DynamoDBDistributedCacheException(e.Message, e);
+                throw new DynamoDBDistributedCacheException($"Failed to put item with key {key}. Caused by {e.Message}", e);
             }
+        }
+
+        /// <summary>
+        /// Creates a <see cref="DeleteItemRequest"/> based on the <paramref name="key"/>. The TableName is stored as a field of this class
+        /// </summary>
+        /// <param name="key">The primary key for the request</param>
+        private DeleteItemRequest CreateDeleteItemRequest(string key)
+        {
+            return new DeleteItemRequest
+            {
+                TableName = _tableName,
+                Key = CreateDictionaryWithPrimaryKey(key)
+            };
+        }
+
+        /// <summary>
+        /// Creates a <see cref="GetItemRequest"/> based on the <paramref name="key"/>. The TableName and ConsistentReads are stored as fields of this class.
+        /// </summary>
+        /// <param name="key">The primary key for the request</param>
+        private GetItemRequest CreateGetItemRequest(string key)
+        {
+            return new GetItemRequest
+            {
+                TableName = _tableName,
+                Key = CreateDictionaryWithPrimaryKey(key),
+                ConsistentRead = _consistentReads
+            };
+        }
+
+        /// <summary>
+        /// Creates a Dictionary of string to AttributeValue where the only entry is a pair mapping of the PRIMARY_KEY attribute value to the <paramref name="key"/>
+        /// </summary>
+        /// <param name="key">The primary key value</param>
+        private Dictionary<string, AttributeValue> CreateDictionaryWithPrimaryKey(string key)
+        {
+            return new Dictionary<string, AttributeValue>()
+            {
+                {
+                    PRIMARY_KEY, new AttributeValue {S = key }
+                }
+            };
         }
     }
 }
