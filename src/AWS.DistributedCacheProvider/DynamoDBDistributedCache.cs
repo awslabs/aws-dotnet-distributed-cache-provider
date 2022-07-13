@@ -178,7 +178,6 @@ namespace AWS.DistributedCacheProvider
                     options.AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds((long)Convert.ToDouble(response[TTL_DEADLINE].N));
                 }
                 var ttl = CalculateTTL(options);
-
                 await ActAndHandleException<Task>(async () =>
                 {
                     await _ddbClient.UpdateItemAsync(new UpdateItemRequest
