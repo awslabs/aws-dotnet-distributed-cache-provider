@@ -249,7 +249,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             var serviceContainer = new ServiceCollection();
             serviceContainer.AddAWSDynamoDBDistributedCache(options);
             var provider = ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(serviceContainer);
-            return (DynamoDBDistributedCache)provider.GetService<IDistributedCache>();
+            return (DynamoDBDistributedCache)provider.GetService<IDistributedCache>()!;
         }
     }
 }
