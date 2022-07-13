@@ -43,7 +43,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             finally
             {
                 //Delete DynamoDB table
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -95,7 +95,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
             finally
             {
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -156,7 +156,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
             finally
             {
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -204,7 +204,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
             finally
             {
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -218,12 +218,12 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         private async Task WaitUntilActive(AmazonDynamoDBClient client, string tableName)
         {
             var isActive = false;
+            var descRequest = new DescribeTableRequest
+            {
+                TableName = tableName
+            };
             while (!isActive)
             {
-                var descRequest = new DescribeTableRequest
-                {
-                    TableName = tableName
-                };
                 var descResponse = await client.DescribeTableAsync(descRequest);
                 var tableStatus = descResponse.Table.TableStatus;
 
@@ -232,15 +232,14 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
         }
 
-        private async void CleanupTable(AmazonDynamoDBClient client, string tableName)
+        private async Task CleanupTable(AmazonDynamoDBClient client, string tableName)
         {
             await WaitUntilActive(client, tableName);
             await client.DeleteTableAsync(tableName);
             var exists = true;
             while (exists)
             {
-                var task = client.ListTablesAsync();
-                var resp = task.Result;
+                var resp = await client.ListTablesAsync();
                 if (!resp.TableNames.Contains(tableName))
                 {
                     exists = false;
