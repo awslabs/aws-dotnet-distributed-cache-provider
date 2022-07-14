@@ -14,8 +14,8 @@ namespace AWS.DistributedCacheProvider.Internal
     /// <summary>
     /// A helper class that calculates TTL related information for <see cref="DynamoDBDistributedCache"/>
     /// This class is not meant to be called directly by a client, it is only kept public for testing purposes.
-    /// Just like the <see href="https://github.com/aws/aws-sdk-net#internal-namespace">DOTNET policy</see> if you need to rely
-    /// on this class, consider opening a <see href="https://github.com/aws/aws-sdk-net/issues/new/choose">feature request</see>
+    /// If you need to rely on this class, consider opening a
+    /// <see href="https://github.com/aws/aws-dotnet-distributed-cache-provider/issues/new/choose">feature request</see>
     /// </summary>
     public class DynamoDBCacheProviderHelper
     {
