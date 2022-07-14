@@ -13,7 +13,6 @@ namespace AWS.DistributedCacheProvider
         private readonly IAmazonDynamoDB _ddbClient;
         private readonly IDynamoDBTableCreator _dynamodbTableCreator;
         private bool _started;
-        private readonly object _lock = new ();
         private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         //configurable values
@@ -74,8 +73,8 @@ namespace AWS.DistributedCacheProvider
                 {
                     if (!_started)
                     {
-                        _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName).GetAwaiter().GetResult();
-                        _ttlAttributeName = _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName).GetAwaiter().GetResult();
+                        await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
+                        _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
                         _started = true;
                     }
                 }
@@ -88,7 +87,8 @@ namespace AWS.DistributedCacheProvider
 
         /// <summary>
         ///<inheritdoc />
-        ///DynamoDB's TTL policy is such that it can take items up to 48 hours to be deleted when they expire.
+        ///<see href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/howitworks-ttl.html">DynamoDB's TTL policy</see>
+        ///states that it can take items up to 48 hours to be deleted when they expire.
         ///As such, if an item's TTL has expired, but still happens to be on the table, this will still return null.
         /// </summary>
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
@@ -99,7 +99,8 @@ namespace AWS.DistributedCacheProvider
         }
         /// <summary>
         ///<inheritdoc />
-        ///DynamoDB's TTL policy is such that it can take items up to 48 hours to be deleted when they expire.
+        ///<see href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/howitworks-ttl.html">DynamoDB's TTL policy</see>
+        ///states that it can take items up to 48 hours to be deleted when they expire.
         ///As such, if an item's TTL has expired, but still happens to be on the table, this will still return null.
         /// </summary>
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
@@ -111,25 +112,25 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var getRequest = CreateGetItemRequest(key);
-            GetItemResponse resp;
+            var getItemRequest = CreateGetItemRequest(key);
+            GetItemResponse getItemResponse;
             try
             {
-               resp = await _ddbClient.GetItemAsync(getRequest, token);
+               getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
             }
             catch(Exception e)
             {
                 throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
             }
-            if (resp.Item.ContainsKey(VALUE_KEY))
+            if (getItemResponse.Item.ContainsKey(VALUE_KEY))
             {
                 //Check even if the Item is present, but its TTL has expired. DynamoDB can take up to 48 hours to remove expired items
-                if (resp.Item[TTL_DATE].N != null &&
-                    DateTimeOffset.UtcNow.CompareTo(DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(resp.Item[TTL_DATE].N))) > 0)
+                if (getItemResponse.Item[TTL_DATE].N != null &&
+                    DateTimeOffset.UtcNow.CompareTo(DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(getItemResponse.Item[TTL_DATE].N))) > 0)
                 {
                     return null;
                 }
-                return resp.Item[VALUE_KEY].B.ToArray();
+                return getItemResponse.Item[VALUE_KEY].B.ToArray();
             }
             else
             {
@@ -137,7 +138,7 @@ namespace AWS.DistributedCacheProvider
             }
         }
 
-        //<inheritdoc />
+        ///<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Refresh(string key)
@@ -145,7 +146,7 @@ namespace AWS.DistributedCacheProvider
             RefreshAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        //<inheritdoc />
+        ///<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task RefreshAsync(string key, CancellationToken token = default)
@@ -155,35 +156,34 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var getRequest = CreateGetItemRequest(key);
-            GetItemResponse resp;
+            var getItemRequest = CreateGetItemRequest(key);
+            GetItemResponse getItemResponse;
             try
             {
-                resp = await _ddbClient.GetItemAsync(getRequest, token);
+                getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
             }
             catch (Exception e)
             {
                 throw new DynamoDBDistributedCacheException($"Failed to get item with key {key}. Caused by {e.Message}", e);
             }
-            if (resp.Item[TTL_WINDOW].S != null)
+            if (getItemResponse.Item[TTL_WINDOW].S != null)
             {
                 var options = new DistributedCacheEntryOptions
                 {
-                    SlidingExpiration = TimeSpan.Parse(resp.Item[TTL_WINDOW].S),
+                    SlidingExpiration = TimeSpan.Parse(getItemResponse.Item[TTL_WINDOW].S),
                 };
-                //My impression is that there is a way to simply this into one line in the DistributedCacheEntryOptions constructor
-                if (resp.Item[TTL_DEADLINE].N != null)
+                if (getItemResponse.Item[TTL_DEADLINE].N != null)
                 {
-                    options.AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds((long)Convert.ToDouble(resp.Item[TTL_DEADLINE].N));
+                    options.AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds((long)Convert.ToDouble(getItemResponse.Item[TTL_DEADLINE].N));
                 }
                 var ttl = DynamoDBCacheProviderHelper.CalculateTTL(options);
-                var updateRequest = new UpdateItemRequest
+                var updateItemRequest = new UpdateItemRequest
                 {
                     TableName = _tableName,
                     Key = CreateDictionaryWithPrimaryKey(key),
                     AttributeUpdates = new Dictionary<string, AttributeValueUpdate>
                     {
-                        //On refresh we only move the TTL_DATE, the TTL_WINDOW and TTL_DEADLINE stay the same
+                        //On refresh we only move the TTL_DATE. the TTL_WINDOW and TTL_DEADLINE stay the same.
                         {
                             TTL_DATE, new AttributeValueUpdate
                             {
@@ -194,7 +194,7 @@ namespace AWS.DistributedCacheProvider
                 };
                 try
                 {
-                    await _ddbClient.UpdateItemAsync(updateRequest, token);
+                    await _ddbClient.UpdateItemAsync(updateItemRequest, token);
                 }
                 catch(Exception e)
                 {
@@ -203,7 +203,7 @@ namespace AWS.DistributedCacheProvider
             }
         }
 
-        //<inheritdoc />
+        ///<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Remove(string key)
@@ -211,7 +211,7 @@ namespace AWS.DistributedCacheProvider
             RemoveAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        //<inheritdoc />
+        ///<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task RemoveAsync(string key, CancellationToken token = default)
@@ -221,10 +221,10 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var deleteRequest = CreateDeleteItemRequest(key);
+            var deleteItemRequest = CreateDeleteItemRequest(key);
             try
             {
-                await _ddbClient.DeleteItemAsync(deleteRequest, token);
+                await _ddbClient.DeleteItemAsync(deleteItemRequest, token);
             }
             catch (Exception e)
             {
@@ -232,7 +232,7 @@ namespace AWS.DistributedCacheProvider
             }
         }
 
-        //<inheritdoc />
+        ///<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
@@ -240,7 +240,7 @@ namespace AWS.DistributedCacheProvider
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
-        //<inheritdoc />
+        ///<inheritdoc />
         /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
@@ -260,7 +260,7 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(options));
             }
-            var request = new PutItemRequest
+            var putItemRequest = new PutItemRequest
             {
                 TableName = _tableName,
                 Item = new Dictionary<string, AttributeValue>()
@@ -284,7 +284,7 @@ namespace AWS.DistributedCacheProvider
             };
             try
             {
-                await _ddbClient.PutItemAsync(request, token);
+                await _ddbClient.PutItemAsync(putItemRequest, token);
             }
             catch (Exception e)
             {

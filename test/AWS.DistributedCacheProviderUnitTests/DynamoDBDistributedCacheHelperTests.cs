@@ -1,11 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Caching.Distributed;
 using Xunit;
@@ -30,7 +25,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             {
                 SlidingExpiration = window
             });
-            Assert.Equal(TimeSpan.Parse(ret.S), window);
+            Assert.Equal(window, TimeSpan.Parse(ret.S));
         }
 
         /*CalculateTTL Tests*/

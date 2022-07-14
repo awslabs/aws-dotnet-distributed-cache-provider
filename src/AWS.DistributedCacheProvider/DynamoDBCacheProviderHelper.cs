@@ -11,14 +11,20 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace AWS.DistributedCacheProvider.Internal
 {
+    /// <summary>
+    /// A helper class that calculates TTL related information for <see cref="DynamoDBDistributedCache"/>
+    /// This class is not meant to be called directly by a client, it is only kept public for testing purposes.
+    /// Just like the <see href="https://github.com/aws/aws-sdk-net#internal-namespace">DOTNET policy</see> if you need to rely
+    /// on this class, consider opening a <see href="https://github.com/aws/aws-sdk-net/issues/new/choose">feature request</see>
+    /// </summary>
     public class DynamoDBCacheProviderHelper
     {
         /// <summary>
         /// Calculates the absolute Time To Live (TTL) given the <paramref name="options"/>
         /// </summary>
-        /// <param name="options"></param>
+        /// <param name="options">A <see cref="DistributedCacheEntryOptions"/> which is used to calculate the TTL deadline of an Item</param>
         /// <returns>An <see cref="AttributeValue"/> which contains either the absolute deadline TTL or nothing.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">When the caclualted absolute deadline is in the past.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">When the calculated absolute deadline is in the past.</exception>
         public static AttributeValue CalculateTTLDeadline(DistributedCacheEntryOptions options)
         {
             if (options.AbsoluteExpiration == null && options.AbsoluteExpirationRelativeToNow == null)
@@ -48,7 +54,7 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <summary>
         /// Calculates the TTL.
         /// </summary>
-        /// <param name="options"></param>
+        /// <param name="options">A <see cref="DistributedCacheEntryOptions"/> which is used to calculate the TTL of an Item</param>
         /// <returns>An <see cref="AttributeValue"/> containting the TTL</returns>
         public static AttributeValue CalculateTTL(DistributedCacheEntryOptions options)
         {
