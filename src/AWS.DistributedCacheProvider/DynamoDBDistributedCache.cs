@@ -91,6 +91,7 @@ namespace AWS.DistributedCacheProvider
         ///DynamoDB's TTL policy is such that it can take items up to 48 hours to be deleted when they expire.
         ///As such, if an item's TTL has expired, but still happens to be on the table, this will still return null.
         /// </summary>
+        /// <exception cref="DynamoDBDistributedCacheException"> When the underlying requests to DynamoDB fail</exception>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public byte[]? Get(string key)
         {
@@ -116,7 +117,7 @@ namespace AWS.DistributedCacheProvider
             {
                resp = await _ddbClient.GetItemAsync(getRequest, token);
             }
-            catch(AmazonDynamoDBException e)
+            catch(Exception e)
             {
                 throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
             }
@@ -160,7 +161,7 @@ namespace AWS.DistributedCacheProvider
             {
                 resp = await _ddbClient.GetItemAsync(getRequest, token);
             }
-            catch (AmazonDynamoDBException e)
+            catch (Exception e)
             {
                 throw new DynamoDBDistributedCacheException($"Failed to get item with key {key}. Caused by {e.Message}", e);
             }
@@ -193,9 +194,9 @@ namespace AWS.DistributedCacheProvider
                 };
                 try
                 {
-                    await _ddbClient.UpdateItemAsync(updateRequest);
+                    await _ddbClient.UpdateItemAsync(updateRequest, token);
                 }
-                catch(AmazonDynamoDBException e)
+                catch(Exception e)
                 {
                     throw new DynamoDBDistributedCacheException($"Failed to refresh the TTL for the cache item: {e.Message}", e);
                 }
@@ -225,7 +226,7 @@ namespace AWS.DistributedCacheProvider
             {
                 await _ddbClient.DeleteItemAsync(deleteRequest, token);
             }
-            catch (AmazonDynamoDBException e)
+            catch (Exception e)
             {
                 throw new DynamoDBDistributedCacheException($"Failed to delete item with key {key}, Caused by {e.Message}", e);
             }
@@ -285,7 +286,7 @@ namespace AWS.DistributedCacheProvider
             {
                 await _ddbClient.PutItemAsync(request, token);
             }
-            catch (AmazonDynamoDBException e)
+            catch (Exception e)
             {
                 throw new DynamoDBDistributedCacheException($"Failed to put item with key {key}. Caused by {e.Message}", e);
             }

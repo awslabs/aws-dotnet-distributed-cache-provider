@@ -27,7 +27,8 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             var key = RandomString();
             var value = Encoding.ASCII.GetBytes(RandomString());
-            ManualPut(key, value, new AttributeValue { NULL = true }, new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
+            ManualPut(key, value, new AttributeValue { NULL = true },
+                new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
             var response = _cache.Get(key);
             Assert.Equal(response, value);
         }
@@ -38,7 +39,8 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             var key = RandomString();
             var value = Encoding.ASCII.GetBytes(RandomString());
             var expiredTTL = DateTimeOffset.UtcNow.AddHours(-5).ToUnixTimeSeconds();
-            ManualPut(key, value, new AttributeValue { N = "" + expiredTTL }, new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
+            ManualPut(key, value, new AttributeValue { N = expiredTTL.ToString() },
+                new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
             Assert.Null(_cache.Get(key));
         }
 
@@ -47,7 +49,8 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             var key = RandomString();
             var value = Encoding.ASCII.GetBytes(RandomString());
-            ManualPut(key, value, new AttributeValue { NULL = true }, new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
+            ManualPut(key, value, new AttributeValue { NULL = true },
+                new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
             _cache.Remove(key);
             var response = _cache.Get(key);
             Assert.Null(response);
@@ -86,14 +89,15 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             {
                 SlidingExpiration = window
             });
-            var resp = await GetItemAsync(key);
+            var resp = (await GetItemAsync(key)).Item;
             //window is 12 hours
-            Assert.Equal(TimeSpan.Parse(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S), window);
+            Assert.Equal(TimeSpan.Parse(resp[DynamoDBDistributedCache.TTL_WINDOW].S), window);
+            Assert.True(resp[DynamoDBDistributedCache.TTL_DEADLINE].NULL);
             //ttl date is approx 12 hours from now
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
-            Assert.True(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].NULL);
         }
 
         [Fact]
@@ -107,11 +111,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             {
                 AbsoluteExpirationRelativeToNow = ttl
             });
-            var resp = await GetItemAsync(key);
-            Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
-            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, resp.Item[DynamoDBDistributedCache.TTL_DATE].N);
+            var resp = (await GetItemAsync(key)).Item;
+            Assert.True(resp[DynamoDBDistributedCache.TTL_WINDOW].NULL);
+            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DEADLINE].N, resp[DynamoDBDistributedCache.TTL_DATE].N);
             //Can't guarantee how close they will be, but within 100 seconds seems more than generous.
-            Assert.True(Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - ttlInUnix) < 100);
+            Assert.True(Math.Abs(double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - ttlInUnix) < 100);
         }
 
         [Fact]
@@ -126,16 +130,18 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 AbsoluteExpirationRelativeToNow = deadline,
                 SlidingExpiration = window
             });
-            var resp = await GetItemAsync(key);
+            var resp = (await GetItemAsync(key)).Item;
             //window is 12 hours
-            Assert.Equal(TimeSpan.Parse(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S), window);
+            Assert.Equal(TimeSpan.Parse(resp[DynamoDBDistributedCache.TTL_WINDOW].S), window);
             //ttl date is approx 12 hours from now
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
             //ttl deadline is approx 24 hours away
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DEADLINE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds())
                 < 100);
         }
 
@@ -150,11 +156,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             {
                 AbsoluteExpiration = deadline
             });
-            var resp = await GetItemAsync(key);
-            Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
-            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, resp.Item[DynamoDBDistributedCache.TTL_DATE].N);
+            var resp = (await GetItemAsync(key)).Item;
+            Assert.True(resp[DynamoDBDistributedCache.TTL_WINDOW].NULL);
+            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DEADLINE].N, resp[DynamoDBDistributedCache.TTL_DATE].N);
             //Can't guarantee how close they will be, but within 100 seconds seems more than generous.
-            Assert.True(Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - deadlineInUnix) < 100);
+            Assert.True(Math.Abs(double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - deadlineInUnix) < 100);
         }
 
         [Fact]
@@ -170,16 +176,18 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 AbsoluteExpiration = deadline,
                 SlidingExpiration = window
             });
-            var resp = await GetItemAsync(key);
+            var resp = (await GetItemAsync(key)).Item;
             //window is 12 hours
-            Assert.Equal(TimeSpan.Parse(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S), window);
+            Assert.Equal(TimeSpan.Parse(resp[DynamoDBDistributedCache.TTL_WINDOW].S), window);
             //ttl date is approx 12 hours from now
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
             //ttl deadline is approx 24 hours away
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DEADLINE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds())
                 < 100);
         }
 
@@ -194,14 +202,15 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 AbsoluteExpiration = deadline,
                 AbsoluteExpirationRelativeToNow = new TimeSpan(12, 0, 0)
             });
-            var resp = await GetItemAsync(key);
+            var resp = (await GetItemAsync(key)).Item;
             //Window is null
-            Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
+            Assert.True(resp[DynamoDBDistributedCache.TTL_WINDOW].NULL);
             //ttl date and deadline are equal
-            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DATE].N, resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N);
+            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DATE].N, resp[DynamoDBDistributedCache.TTL_DEADLINE].N);
             //ttl date is approx 12 hours from now
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
         }
 
@@ -219,16 +228,18 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 AbsoluteExpirationRelativeToNow = deadline_rel,
                 SlidingExpiration = window
             });
-            var resp = await GetItemAsync(key);
+            var resp = (await GetItemAsync(key)).Item;
             //Window is 12 hours
-            Assert.Equal(TimeSpan.Parse(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S), window);
+            Assert.Equal(TimeSpan.Parse(resp[DynamoDBDistributedCache.TTL_WINDOW].S), window);
             //ttl date is approx 12 hours from now
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
             //ttl deadline is approx 24 hours from now
             Assert.True(
-                Math.Abs(double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds())
+                Math.Abs(
+                    double.Parse(resp[DynamoDBDistributedCache.TTL_DEADLINE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds())
                 < 100);
         }
 
@@ -238,7 +249,8 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             var key = RandomString();
             var value = Encoding.ASCII.GetBytes(RandomString());
-            ManualPut(key, value, new AttributeValue { NULL = true }, new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
+            ManualPut(key, value, new AttributeValue { NULL = true },
+                new AttributeValue { NULL = true }, new AttributeValue { NULL = true });
             _cache.Refresh(key);
             var resp = await GetItemAsync(key);
             Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
@@ -247,15 +259,15 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         }
 
         //If TTL_DATE is null, then the item never expires.
-        //If TTL_DATE is not null, but TTL_WINDOW is, then TTL_DATE and TTL_DEADLINE should be equal. Even if they are not, Refresh() is meaningless
-
+        //If TTL_DATE is not null, but TTL_WINDOW is, then TTL_DATE and TTL_DEADLINE should be equal.
+        //Even if they are not, Refresh() is meaningless
         [Fact]
         public async void Refresh_TTLWindowIsNull_RefreshChangesNothing()
         {
             var key = RandomString();
             var value = Encoding.ASCII.GetBytes(RandomString());
             //Set TTL_DATE and TTL_DEADLINE to 12 hours from now
-            var ttl = "" + DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds();
+            var ttl = DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds().ToString();
 
             ManualPut(key, value, new AttributeValue { N = ttl }, new AttributeValue { N = ttl }, new AttributeValue { NULL = true });
             _cache.Refresh(key);
@@ -273,10 +285,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //Set TTL_DATE to 12 hours from now
             //Set TTL_DEADLINE to 48 hours from now
             //Set TTL_WINDOW to 24 hours
-            var ttl_date = "" + DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds();
-            var ttl_deadline = "" + DateTimeOffset.UtcNow.AddHours(48).ToUnixTimeSeconds();
+            var ttl_date = DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds().ToString();
+            var ttl_deadline = DateTimeOffset.UtcNow.AddHours(48).ToUnixTimeSeconds().ToString();
             var ttl_window = new TimeSpan(24, 0, 0).ToString();
-            ManualPut(key, value, new AttributeValue { N = ttl_date }, new AttributeValue { N = ttl_deadline }, new AttributeValue { S = ttl_window });
+            ManualPut(key, value, new AttributeValue { N = ttl_date },
+                new AttributeValue { N = ttl_deadline }, new AttributeValue { S = ttl_window });
             _cache.Refresh(key);
             var resp = await GetItemAsync(key);
             //window stays the same
@@ -287,11 +300,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             Assert.True(
                 Math.Abs(
                     double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds()
-                    ) < 100,
-                $"Now is               {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}\n" +
-                $"Origional TTL_DATE:  {ttl_date}\n"+
-                $"TTL_DATE:            {resp.Item[DynamoDBDistributedCache.TTL_DATE].N}\n" +
-                $"Now plus 24 hours is {DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds()}");
+                    ) < 100);
         }
 
         [Fact]
@@ -302,10 +311,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //Set TTL_DATE to 6 hours from now
             //Set TTL_DEADLINE to 18 hours from now
             //Set TTL_WINDOW to 24 hours
-            var ttl_date = "" + DateTimeOffset.UtcNow.AddHours(6).ToUnixTimeSeconds();
-            var ttl_deadline = "" + DateTimeOffset.UtcNow.AddHours(18).ToUnixTimeSeconds();
+            var ttl_date = DateTimeOffset.UtcNow.AddHours(6).ToUnixTimeSeconds().ToString();
+            var ttl_deadline = DateTimeOffset.UtcNow.AddHours(18).ToUnixTimeSeconds().ToString();
             var ttl_window = new TimeSpan(24, 0, 0).ToString();
-            ManualPut(key, value, new AttributeValue { N = ttl_date }, new AttributeValue { N = ttl_deadline }, new AttributeValue { S = ttl_window });
+            ManualPut(key, value, new AttributeValue { N = ttl_date },
+                new AttributeValue { N = ttl_deadline }, new AttributeValue { S = ttl_window });
             _cache.Refresh(key);
             var resp = await GetItemAsync(key);
             //window stays the same

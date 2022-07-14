@@ -21,6 +21,7 @@ namespace AWS.DistributedCacheProviderUnitTests
         {
             var moqClient = new Moq.Mock<IAmazonDynamoDB>();
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
+            //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
             moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))

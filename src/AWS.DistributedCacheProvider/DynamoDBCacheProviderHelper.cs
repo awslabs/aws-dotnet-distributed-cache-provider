@@ -35,13 +35,13 @@ namespace AWS.DistributedCacheProvider.Internal
                 }
                 else
                 {
-                    return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
+                    return new AttributeValue { N = ttl.ToUnixTimeSeconds().ToString() };
                 }
             }//AbsoluteExpirationRelativeToNow is not null, regardless of what AbsoluteExpiration is set to, we prefer AbsoluteExpirationRelativeToNow
             else
             {
                 var ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow!).ToUnixTimeSeconds();
-                return new AttributeValue { N = "" + ttl };
+                return new AttributeValue { N = ttl.ToString() };
             }
         }
 
@@ -60,7 +60,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 var absoluteTTL = CalculateTTLDeadline(options);
                 if (absoluteTTL.NULL)
                 {
-                    return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
+                    return new AttributeValue { N = ttl.ToUnixTimeSeconds().ToString() };
                 }
                 else //return smaller of the two. Either the TTL based on the sliding window or the deadline
                 {
@@ -70,7 +70,7 @@ namespace AWS.DistributedCacheProvider.Internal
                     }
                     else
                     {
-                        return new AttributeValue { N = "" + ttl.ToUnixTimeSeconds() };
+                        return new AttributeValue { N = ttl.ToUnixTimeSeconds().ToString() };
                     }
                 }
             }
