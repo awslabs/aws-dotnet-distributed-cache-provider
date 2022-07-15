@@ -12,7 +12,7 @@ namespace AWS.DistributedCacheProvider
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBTableCreator));
 
         /// <inheritdoc/>
-        public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string ttlAttribute)
+        public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
         {
             _logger.InfoFormat($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}");
             try
@@ -73,7 +73,7 @@ namespace AWS.DistributedCacheProvider
         /// <param name="client">DynamoDB client</param>
         /// <param name="tableName">Table name</param>
         /// <param name="ttlAttribute">TTL attribute name</param>
-        private async Task CreateTableAsync(IAmazonDynamoDB client, string tableName, string ttlAttribute)
+        private async Task CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute)
         {
             var createRequest = new CreateTableRequest
             {

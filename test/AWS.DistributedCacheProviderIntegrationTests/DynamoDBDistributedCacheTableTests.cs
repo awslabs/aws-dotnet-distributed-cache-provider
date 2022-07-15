@@ -36,13 +36,14 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                     options.CreateTableIfNotExists = true;
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
-                //resolving the table should pass. We then have a NotImplementedException until we implement CRUD operations.
-                Assert.Throws<NotImplementedException>(() => cache.Get(""));
+                //resolving the table should pass.
+                //Key cannot be empty, otherwise the client will throw an exception
+                cache.Get("blah");
             }
             finally
             {
                 //Delete DynamoDB table
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -52,7 +53,9 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         [Fact]
         public async void LoadValidTableTest()
         {
-            var key = "key";
+            //key must match what the cache expects the key to be. Otherwise an error will be thrown when
+            //we validate that the table is valid when we make a CRUD call.
+            var key = DynamoDBDistributedCache.PRIMARY_KEY;
             var tableName = TABLE_NAME_PREFIX + "table_test_1";
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
@@ -86,12 +89,13 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                     options.CreateTableIfNotExists = false;
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
-                //resolving the table should pass. We then have a NotImplementedException until we implement CRUD operations.
-                Assert.Throws<NotImplementedException>(() => cache.Get(""));
+                //resolving the table should pass.
+                //Key cannot be empty, otherwise the client will throw an exception
+                cache.Get("blah");
             }
             finally
             {
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -148,11 +152,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should not pass as the key is invalid.
-                Assert.Throws<AmazonDynamoDBException>(() => cache.Get(""));
+                Assert.Throws<InvalidTableException>(() => cache.Get(""));
             }
             finally
             {
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -196,11 +200,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should not pass as the key is invalid.
-                Assert.Throws<AmazonDynamoDBException>(() => cache.Get(""));
+                Assert.Throws<InvalidTableException>(() => cache.Get(""));
             }
             finally
             {
-                CleanupTable(client, tableName);
+                await CleanupTable(client, tableName);
             }
         }
 
@@ -214,12 +218,12 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         private async Task WaitUntilActive(AmazonDynamoDBClient client, string tableName)
         {
             var isActive = false;
+            var descRequest = new DescribeTableRequest
+            {
+                TableName = tableName
+            };
             while (!isActive)
             {
-                var descRequest = new DescribeTableRequest
-                {
-                    TableName = tableName
-                };
                 var descResponse = await client.DescribeTableAsync(descRequest);
                 var tableStatus = descResponse.Table.TableStatus;
 
@@ -228,15 +232,14 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
         }
 
-        private async void CleanupTable(AmazonDynamoDBClient client, string tableName)
+        private async Task CleanupTable(AmazonDynamoDBClient client, string tableName)
         {
             await WaitUntilActive(client, tableName);
-            client.DeleteTableAsync(tableName).Wait();
+            await client.DeleteTableAsync(tableName);
             var exists = true;
             while (exists)
             {
-                var task = client.ListTablesAsync();
-                var resp = task.Result;
+                var resp = await client.ListTablesAsync();
                 if (!resp.TableNames.Contains(tableName))
                 {
                     exists = false;
@@ -249,7 +252,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             var serviceContainer = new ServiceCollection();
             serviceContainer.AddAWSDynamoDBDistributedCache(options);
             var provider = ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(serviceContainer);
-            return (DynamoDBDistributedCache)provider.GetService<IDistributedCache>();
+            return (DynamoDBDistributedCache)provider.GetService<IDistributedCache>()!;
         }
     }
 }
