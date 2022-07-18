@@ -9,7 +9,7 @@ namespace AWS.DistributedCacheProvider.Internal
 {
     /// <summary>
     /// A helper class that manages DynamoDB interactions related to Table creation, loading, and validation.
-    /// This clas is not meant to be called directly by a client, it is only kept public for testing purposes
+    /// This class is not meant to be called directly by a client, it is only kept public for testing purposes
     /// If you need to rely on this class, consider opening a
     /// <see href="https://github.com/aws/aws-dotnet-distributed-cache-provider/issues/new/choose">feature request</see>
     /// </summary>
