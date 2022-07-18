@@ -1,10 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-using Amazon.Runtime.Internal.Util;
 using Amazon.DynamoDBv2;
 using Microsoft.Extensions.Caching.Distributed;
 using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -29,7 +30,7 @@ namespace AWS.DistributedCacheProvider
         public const string TTL_WINDOW = "ttl_window";//How far in the future to push the TTL of an Item when Refresh() is called
         public const string TTL_DEADLINE = "ttl_deadline";//The limit of how far the TTL can be pushed in cases of Refresh()
 
-        private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBDistributedCache));
+        private readonly ILogger<DynamoDBDistributedCache> _logger;
 
         /// <summary>
         /// Constructor for DynamoDBDistributedCache.
@@ -38,7 +39,7 @@ namespace AWS.DistributedCacheProvider
         /// <param name="creator">Creator class that is responsible for creating or validating the DynamoDB Table</param>
         /// <param name="options">Configurable options for the cache</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public DynamoDBDistributedCache(IAmazonDynamoDB client, IDynamoDBTableCreator creator, DynamoDBDistributedCacheOptions options)
+        public DynamoDBDistributedCache(IAmazonDynamoDB client, IDynamoDBTableCreator creator, DynamoDBDistributedCacheOptions options, ILoggerFactory? loggerFactory = null)
         {
             if(client == null)
             {
@@ -51,6 +52,14 @@ namespace AWS.DistributedCacheProvider
             if (creator == null)
             {
                 throw new ArgumentNullException(nameof(creator));
+            }
+            if (loggerFactory != null)
+            {
+                _logger = loggerFactory.CreateLogger<DynamoDBDistributedCache>();
+            }
+            else
+            {
+                _logger = NullLoggerFactory.Instance.CreateLogger<DynamoDBDistributedCache>();
             }
             _ddbClient = client;
             _dynamodbTableCreator = creator;
