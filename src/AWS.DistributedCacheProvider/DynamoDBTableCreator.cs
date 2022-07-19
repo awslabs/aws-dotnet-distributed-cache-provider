@@ -10,7 +10,19 @@ namespace AWS.DistributedCacheProvider
 {
     public class DynamoDBTableCreator : IDynamoDBTableCreator
     {
-        private readonly ILogger<DynamoDBTableCreator> _logger = NullLoggerFactory.Instance.CreateLogger<DynamoDBTableCreator>();
+        private readonly ILogger<DynamoDBTableCreator> _logger;
+
+        public DynamoDBTableCreator(ILoggerFactory? loggerFactory = null)
+        {
+            if (loggerFactory != null)
+            {
+                _logger = loggerFactory.CreateLogger<DynamoDBTableCreator>();
+            }
+            else
+            {
+                _logger = NullLoggerFactory.Instance.CreateLogger<DynamoDBTableCreator>();
+            }
+        }
 
         /// <inheritdoc/>
         public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
