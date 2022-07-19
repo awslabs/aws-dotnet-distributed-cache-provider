@@ -5,8 +5,14 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime.Internal.Util;
 
-namespace AWS.DistributedCacheProvider
+namespace AWS.DistributedCacheProvider.Internal
 {
+    /// <summary>
+    /// A helper class that manages DynamoDB interactions related to Table creation, loading, and validation.
+    /// This class is not meant to be called directly by a client, it is only kept public for testing purposes
+    /// If you need to rely on this class, consider opening a
+    /// <see href="https://github.com/aws/aws-dotnet-distributed-cache-provider/issues/new/choose">feature request</see>
+    /// </summary>
     public class DynamoDBTableCreator : IDynamoDBTableCreator
     {
         private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBTableCreator));
