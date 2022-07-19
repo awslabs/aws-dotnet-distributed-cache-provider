@@ -1,4 +1,4 @@
-name: AWS CodeBuild CI - DistributedCacheProvider
+name: AWS CodeBuild CI
 
 on:
   pull_request:
