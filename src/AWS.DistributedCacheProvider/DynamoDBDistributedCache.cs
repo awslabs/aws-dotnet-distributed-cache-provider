@@ -77,18 +77,26 @@ namespace AWS.DistributedCacheProvider
         {
             if(!_started)
             {
+                _logger.LogDebug("Cache not yet set to have started. Attempting startup");
                 await _semaphore.WaitAsync().ConfigureAwait(false);
                 try
                 {
+                    _logger.LogDebug("Passed Semaphore into critical section");
                     if (!_started)
                     {
+                        _logger.LogDebug("Started still set to false, Starting up.");
                         await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
                         _started = true;
                     }
+                    else
+                    {
+                        _logger.LogDebug("Started was set to true, a different thread already started the cache");
+                    }
                 }
                 finally
                 {
+                    _logger.LogDebug("Releasing sempahore");
                     _semaphore.Release();
                 }
             }
@@ -129,9 +137,9 @@ namespace AWS.DistributedCacheProvider
             GetItemResponse getItemResponse;
             try
             {
-                _logger.LogDebug("Making GetItemSync call to DynamoDB", getItemRequest);
+                _logger.LogDebug("Making GetItemSync {} call to DynamoDB", getItemRequest);
                 getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
-                _logger.LogDebug("Return from DyanmoDB was", getItemResponse);
+                _logger.LogDebug("Return from DyanmoDB was {}", getItemResponse);
             }
             catch(Exception e)
             {
@@ -180,9 +188,9 @@ namespace AWS.DistributedCacheProvider
             GetItemResponse getItemResponse;
             try
             {
-                _logger.LogDebug("Making GetItemSync call to DynamoDB", getItemRequest);
+                _logger.LogDebug("Making GetItemSync {} call to DynamoDB", getItemRequest);
                 getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
-                _logger.LogDebug("Return from DyanmoDB was", getItemResponse);
+                _logger.LogDebug("Return from DyanmoDB was {}", getItemResponse);
             }
             catch (Exception e)
             {
@@ -216,7 +224,7 @@ namespace AWS.DistributedCacheProvider
                 };
                 try
                 {
-                    _logger.LogDebug("Updating item in DynamoDB", updateItemRequest);
+                    _logger.LogDebug("Making UpdateItemAsync {} call to DynamoDB", updateItemRequest);
                     await _ddbClient.UpdateItemAsync(updateItemRequest, token);
                 }
                 catch(Exception e)
@@ -253,7 +261,7 @@ namespace AWS.DistributedCacheProvider
             var deleteItemRequest = CreateDeleteItemRequest(key);
             try
             {
-                _logger.LogDebug("Making DeleteItemAsync call to DynamoDB", deleteItemRequest);
+                _logger.LogDebug("Making DeleteItemAsync {} call to DynamoDB", deleteItemRequest);
                 await _ddbClient.DeleteItemAsync(deleteItemRequest, token);
             }
             catch (Exception e)
@@ -267,7 +275,7 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            _logger.LogDebug("Set called with key value and options", key, value, options);
+            _logger.LogDebug("Set called with key {} value {} and options {}", key, value, options);
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
@@ -276,7 +284,7 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
-            _logger.LogDebug("SetAsync called with key value and options", key, value, options);
+            _logger.LogDebug("SetAsync called with key {} value {} and options {}", key, value, options);
             await StartupAsync();
             if (key == null)
             {
@@ -316,7 +324,7 @@ namespace AWS.DistributedCacheProvider
             };
             try
             {
-                _logger.LogDebug("Making a PutItemAsync call to DynamoDB", putItemRequest);
+                _logger.LogDebug("Making a PutItemAsync {} call to DynamoDB", putItemRequest);
                 await _ddbClient.PutItemAsync(putItemRequest, token);
             }
             catch (Exception e)
