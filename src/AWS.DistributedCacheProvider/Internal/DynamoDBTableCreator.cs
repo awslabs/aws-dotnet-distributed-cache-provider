@@ -3,7 +3,8 @@
 
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
-using Amazon.Runtime.Internal.Util;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AWS.DistributedCacheProvider.Internal
 {
@@ -15,12 +16,24 @@ namespace AWS.DistributedCacheProvider.Internal
     /// </summary>
     public class DynamoDBTableCreator : IDynamoDBTableCreator
     {
-        private static readonly ILogger _logger = Logger.GetLogger(typeof(DynamoDBTableCreator));
+        private readonly ILogger<DynamoDBTableCreator> _logger;
+
+        public DynamoDBTableCreator(ILoggerFactory? loggerFactory = null)
+        {
+            if (loggerFactory != null)
+            {
+                _logger = loggerFactory.CreateLogger<DynamoDBTableCreator>();
+            }
+            else
+            {
+                _logger = NullLoggerFactory.Instance.CreateLogger<DynamoDBTableCreator>();
+            }
+        }
 
         /// <inheritdoc/>
         public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
         {
-            _logger.InfoFormat($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}");
+            _logger.LogInformation($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}");
             try
             {
                 //test if table already exists
@@ -28,12 +41,12 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     TableName = tableName
                 });
-                _logger.InfoFormat("Table does exist. Validating");
+                _logger.LogInformation("Table does exist. Validating");
                 ValidateTable(resp.Table);
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
-                _logger.InfoFormat("Table does not exist");
+                _logger.LogInformation("Table does not exist");
                 if (create)
                 {
                     await CreateTableAsync(client, tableName, ttlAttribute);
@@ -139,7 +152,7 @@ namespace AWS.DistributedCacheProvider.Internal
             var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
             {
-                _logger.InfoFormat($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
+                _logger.LogInformation($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
             }
             return ttlDesc.AttributeName ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME;
         }
