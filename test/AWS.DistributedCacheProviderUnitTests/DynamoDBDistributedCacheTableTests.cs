@@ -1,6 +1,7 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider;
+using AWS.DistributedCacheProvider.Internal;
 using Moq;
 using Xunit;
 

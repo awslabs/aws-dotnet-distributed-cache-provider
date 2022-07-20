@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 using Amazon.DynamoDBv2;
 using AWS.DistributedCacheProvider;
+using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 
