@@ -33,7 +33,7 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <inheritdoc/>
         public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
         {
-            _logger.LogInformation($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}");
+            _logger.LogDebug($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}.");
             try
             {
                 //test if table already exists
@@ -41,15 +41,17 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     TableName = tableName
                 });
-                _logger.LogInformation("Table does exist. Validating");
+                _logger.LogDebug("Table does exist. Validating");
                 ValidateTable(resp.Table);
+                _logger.LogInformation($"Found Table {tableName} to be a viable cache. No need to create resource.");
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
-                _logger.LogInformation("Table does not exist");
+                _logger.LogDebug("Table does not exist");
                 if (create)
                 {
                     await CreateTableAsync(client, tableName, ttlAttribute);
+                    _logger.LogInformation($"Table {tableName} was not found, but has been created.");
                 }
                 else
                 {
@@ -152,7 +154,7 @@ namespace AWS.DistributedCacheProvider.Internal
             var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
             {
-                _logger.LogInformation($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
+                _logger.LogDebug($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
             }
             return ttlDesc.AttributeName ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME;
         }
