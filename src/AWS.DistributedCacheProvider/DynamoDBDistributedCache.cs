@@ -273,10 +273,7 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            _logger.LogDebug("Set called with key {key} options.AbsoluteExpiration {options.AbsoluteExpiration}, " +
-                "options.AbsoluteExpirationRelativeToNow {options.AbsoluteExpirationRelativeToNow} and options.SlidingExpiration" +
-                " {options.SlidingExpiration}", key, options.AbsoluteExpiration, options.AbsoluteExpirationRelativeToNow,
-                options.SlidingExpiration);
+            _logger.LogDebug("Set called with key {key}, options {options}", key, options);
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
@@ -285,10 +282,7 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
-            _logger.LogDebug("SetAsync called with key {key} options.AbsoluteExpiration {options.AbsoluteExpiration}, " +
-                "options.AbsoluteExpirationRelativeToNow {options.AbsoluteExpirationRelativeToNow} and options.SlidingExpiration" +
-                " {options.SlidingExpiration}", key, options.AbsoluteExpiration, options.AbsoluteExpirationRelativeToNow,
-                options.SlidingExpiration);
+            _logger.LogDebug("SetAsync called with key {key}, options {options}", key, options);
             await StartupAsync();
             if (key == null)
             {
