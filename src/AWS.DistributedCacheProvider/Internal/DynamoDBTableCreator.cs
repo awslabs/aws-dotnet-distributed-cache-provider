@@ -43,7 +43,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 });
                 _logger.LogDebug("Table does exist. Validating");
                 ValidateTable(resp.Table);
-                _logger.LogInformation($"Found Table {tableName} to be a viable cache. No need to create resource.");
+                _logger.LogInformation($"DynamoDB distributed cache provider configured to use table {tableName}.");
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
@@ -51,7 +51,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 if (create)
                 {
                     await CreateTableAsync(client, tableName, ttlAttribute);
-                    _logger.LogInformation($"Table {tableName} was not found, but has been created.");
+                    _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}.");
                 }
                 else
                 {
@@ -154,7 +154,8 @@ namespace AWS.DistributedCacheProvider.Internal
             var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
             {
-                _logger.LogDebug($"Loading table {tableName} and current TTL status is {ttlDesc.TimeToLiveStatus}. Items will never be deleted automatically");
+                _logger.LogDebug($"Distributed cache table {tableName} has Time to Live (TTL) disabled. Items will never be deleted " +
+                    $"automatically.It is recommended to enable TTL for the table to remove stale cached data.");
             }
             return ttlDesc.AttributeName ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME;
         }
