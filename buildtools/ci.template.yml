@@ -16,7 +16,7 @@ Parameters:
     Default: "aws-dotnet-distributed-cache-provider-ci"
     Type: String
   TestRunnerRoleArn:
-    Description: Role to assume when running tests.  This role must already exsit.  Role can be a different account.  Example arn:aws:iam:112233445566::role/awsdotnet-deploy-ci-test-runner
+    Description: Role to assume when running tests.  This role must already exsit.  Role can be a different account.  Example arn:aws:iam:112233445566::role/aws-dotnet-distributed-cache-provider-ci-test-runner
     Default: ""
     Type: String
   OidcRoleRoleName:
