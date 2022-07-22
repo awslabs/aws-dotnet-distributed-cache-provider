@@ -114,7 +114,7 @@ namespace AWS.DistributedCacheProvider
         {
             _logger.LogDebug($"Get called with key {key}");
             var byteArray = GetAsync(key, new CancellationToken()).GetAwaiter().GetResult();
-            _logger.LogDebug("Get returning value", byteArray);
+            _logger.LogDebug("Get returning value");
             return byteArray;
         }
         /// <summary>
@@ -137,9 +137,8 @@ namespace AWS.DistributedCacheProvider
             GetItemResponse getItemResponse;
             try
             {
-                _logger.LogDebug("Making GetItemSync {} call to DynamoDB", getItemRequest);
+                _logger.LogDebug("Making GetItemSync call to DynamoDB");
                 getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
-                _logger.LogDebug("Return from DyanmoDB was {}", getItemResponse);
             }
             catch(Exception e)
             {
@@ -154,7 +153,7 @@ namespace AWS.DistributedCacheProvider
                     _logger.LogDebug("Response from DynamoDB did contain a value, but the TTL of the item has passed. Returning null");
                     return null;
                 }
-                _logger.LogDebug("Returning response from DynamoDB", getItemResponse.Item[VALUE_KEY].B.ToArray());
+                _logger.LogDebug("Returning response from DynamoDB");
                 return getItemResponse.Item[VALUE_KEY].B.ToArray();
             }
             else
@@ -188,9 +187,8 @@ namespace AWS.DistributedCacheProvider
             GetItemResponse getItemResponse;
             try
             {
-                _logger.LogDebug("Making GetItemSync {} call to DynamoDB", getItemRequest);
+                _logger.LogDebug("Making GetItemSync call to DynamoDB");
                 getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
-                _logger.LogDebug("Return from DyanmoDB was {}", getItemResponse);
             }
             catch (Exception e)
             {
@@ -224,7 +222,7 @@ namespace AWS.DistributedCacheProvider
                 };
                 try
                 {
-                    _logger.LogDebug("Making UpdateItemAsync {} call to DynamoDB", updateItemRequest);
+                    _logger.LogDebug("Making UpdateItemAsync call to DynamoDB");
                     await _ddbClient.UpdateItemAsync(updateItemRequest, token);
                 }
                 catch(Exception e)
@@ -261,7 +259,7 @@ namespace AWS.DistributedCacheProvider
             var deleteItemRequest = CreateDeleteItemRequest(key);
             try
             {
-                _logger.LogDebug("Making DeleteItemAsync {} call to DynamoDB", deleteItemRequest);
+                _logger.LogDebug("Making DeleteItemAsync call to DynamoDB");
                 await _ddbClient.DeleteItemAsync(deleteItemRequest, token);
             }
             catch (Exception e)
@@ -275,7 +273,10 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            _logger.LogDebug("Set called with key {} value {} and options {}", key, value, options);
+            _logger.LogDebug("Set called with key {key} options.AbsoluteExpiration {options.AbsoluteExpiration}, " +
+                "options.AbsoluteExpirationRelativeToNow {options.AbsoluteExpirationRelativeToNow} and options.SlidingExpiration" +
+                " {options.SlidingExpiration}", key, options.AbsoluteExpiration, options.AbsoluteExpirationRelativeToNow,
+                options.SlidingExpiration);
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
@@ -284,7 +285,10 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
-            _logger.LogDebug("SetAsync called with key {} value {} and options {}", key, value, options);
+            _logger.LogDebug("SetAsync called with key {key} options.AbsoluteExpiration {options.AbsoluteExpiration}, " +
+                "options.AbsoluteExpirationRelativeToNow {options.AbsoluteExpirationRelativeToNow} and options.SlidingExpiration" +
+                " {options.SlidingExpiration}", key, options.AbsoluteExpiration, options.AbsoluteExpirationRelativeToNow,
+                options.SlidingExpiration);
             await StartupAsync();
             if (key == null)
             {
@@ -324,7 +328,7 @@ namespace AWS.DistributedCacheProvider
             };
             try
             {
-                _logger.LogDebug("Making a PutItemAsync {} call to DynamoDB", putItemRequest);
+                _logger.LogDebug("Making a PutItemAsync call to DynamoDB");
                 await _ddbClient.PutItemAsync(putItemRequest, token);
             }
             catch (Exception e)
