@@ -78,7 +78,7 @@ namespace AWS.DistributedCacheProvider
         {
             if(!_started)
             {
-                _logger.LogDebug("Cache not yet set to have started. Attempting startup");
+                _logger.LogDebug("Cache has not started yet. Attempting startup");
                 await _semaphore.WaitAsync().ConfigureAwait(false);
                 try
                 {
@@ -411,23 +411,6 @@ namespace AWS.DistributedCacheProvider
         private DateTimeOffset UnixSecondsToDateTimeOffset(string seconds)
         {
             return DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(seconds));
-        }
-
-        /// <summary>
-        /// Returns a TimeSpan object that is represented by the <paramref name="timespan"/> string. If the string is
-        /// null the returned TimeSpan is of length zero.
-        /// </summary>
-        /// <param name="timespan">The string represtation of the TimeSpan</param>
-        /// <returns>Either the TimeSpan representated by the <paramref name="timespan"/> or a TimeSpan of length zero.</returns>
-        private TimeSpan StringToTimeSpanSafe(string timespan)
-        {
-            if(timespan != null)
-            {
-                return TimeSpan.Parse(timespan);
-            } else
-            {
-                return new TimeSpan(0);
-            }
         }
     }
 }
