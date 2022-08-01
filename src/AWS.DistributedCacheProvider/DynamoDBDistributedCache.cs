@@ -85,7 +85,10 @@ namespace AWS.DistributedCacheProvider
                     {
                         await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
-                        ((AmazonDynamoDBClient)_ddbClient).BeforeRequestEvent += DynamoDBSessionStateStore_BeforeRequestEvent;
+                        if (_ddbClient is AmazonDynamoDBClient)
+                        {
+                            ((AmazonDynamoDBClient)_ddbClient).BeforeRequestEvent += DynamoDBSessionStateStore_BeforeRequestEvent;
+                        }
                         _started = true;
                     }
                 }
