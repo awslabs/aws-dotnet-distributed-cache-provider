@@ -324,33 +324,36 @@ namespace AWS.DistributedCacheProvider
             };
             try
             {
-                var logStringBuilder = new StringBuilder();
-                logStringBuilder.Append("Making a PutItemAsync call to DynamoDB. ");
-                if(ttlDate.N != null)
+                if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    logStringBuilder.Append($"TTL for item is {UnixSecondsToDateTimeOffset(ttlDate.N)}. ");
+                    var logStringBuilder = new StringBuilder();
+                    logStringBuilder.Append("Making a PutItemAsync call to DynamoDB. ");
+                    if (ttlDate.N != null)
+                    {
+                        logStringBuilder.Append($"TTL for item is {UnixSecondsToDateTimeOffset(ttlDate.N)}. ");
+                    }
+                    else
+                    {
+                        logStringBuilder.Append("TTL for item is undefined. ");
+                    }
+                    if (ttlDeadline.N != null)
+                    {
+                        logStringBuilder.Append($"TTL Deadline for item is {UnixSecondsToDateTimeOffset(ttlDeadline.N)}. ");
+                    }
+                    else
+                    {
+                        logStringBuilder.Append("TTL Deadline for item is undefined. ");
+                    }
+                    if (ttlWindow.S != null)
+                    {
+                        logStringBuilder.Append($"TTL Window is {TimeSpan.Parse(ttlWindow.S)}. ");
+                    }
+                    else
+                    {
+                        logStringBuilder.Append("TTL Window is undefined. ");
+                    }
+                    _logger.LogDebug(logStringBuilder.ToString());
                 }
-                else
-                {
-                    logStringBuilder.Append("TTL for item is undefined. ");
-                }
-                if (ttlDeadline.N != null)
-                {
-                    logStringBuilder.Append($"TTL Deadline for item is {UnixSecondsToDateTimeOffset(ttlDeadline.N)}. ");
-                }
-                else
-                {
-                    logStringBuilder.Append("TTL Deadline for item is undefined. ");
-                }
-                if (ttlWindow.S != null)
-                {
-                    logStringBuilder.Append($"TTL Window is {TimeSpan.Parse(ttlWindow.S)}. ");
-                }
-                else
-                {
-                    logStringBuilder.Append("TTL Window is undefined. ");
-                }
-                _logger.LogDebug(logStringBuilder.ToString());
                 await _ddbClient.PutItemAsync(putItemRequest, token);
             }
             catch (Exception e)
