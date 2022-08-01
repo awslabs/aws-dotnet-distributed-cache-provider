@@ -6,6 +6,7 @@ using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Amazon.Runtime;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -70,7 +71,7 @@ namespace AWS.DistributedCacheProvider
         }
 
         /// <summary>
-        /// Make sure the backing datastore is up and running before accepting client requests
+        /// Make sure the backing datastore is up and running before accepting client requests. Also adds the User Agent Header to the DynamoDBClient
         /// </summary>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         private async Task StartupAsync()
@@ -84,6 +85,7 @@ namespace AWS.DistributedCacheProvider
                     {
                         await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
+                        ((AmazonDynamoDBClient)_ddbClient).BeforeRequestEvent += DynamoDBSessionStateStore_BeforeRequestEvent;
                         _started = true;
                     }
                 }
@@ -92,6 +94,19 @@ namespace AWS.DistributedCacheProvider
                     _semaphore.Release();
                 }
             }
+        }
+
+        const string UserAgentHeader = "User-Agent";
+        /// <summary>
+        /// Appends header to all requests made by DynamoDBClient in this class to reflect that the requets originated from this library.
+        /// </summary>
+        void DynamoDBSessionStateStore_BeforeRequestEvent(object sender, RequestEventArgs e)
+        {
+            Amazon.Runtime.WebServiceRequestEventArgs args = e as WebServiceRequestEventArgs;
+            if (args == null || !args.Headers.ContainsKey(UserAgentHeader))
+                return;
+
+            args.Headers[UserAgentHeader] = args.Headers[UserAgentHeader] + " DynamoDBDistributedCache";
         }
 
         /// <summary>
