@@ -6,6 +6,7 @@ using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -112,9 +113,7 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public byte[]? Get(string key)
         {
-            _logger.LogDebug($"Get called with key {key}");
             var byteArray = GetAsync(key, new CancellationToken()).GetAwaiter().GetResult();
-            _logger.LogDebug("Get returning value");
             return byteArray;
         }
         /// <summary>
@@ -148,17 +147,18 @@ namespace AWS.DistributedCacheProvider
             {
                 //Check even if the Item is present, but its TTL has expired. DynamoDB can take up to 48 hours to remove expired items
                 if (getItemResponse.Item[TTL_DATE].N != null &&
-                    DateTimeOffset.UtcNow.CompareTo(DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(getItemResponse.Item[TTL_DATE].N))) > 0)
+                    DateTimeOffset.UtcNow.CompareTo(UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DATE].N)) > 0)
                 {
                     _logger.LogDebug("Response from DynamoDB did contain a value, but the TTL of the item has passed. Returning null");
                     return null;
                 }
-                _logger.LogDebug("Returning response from DynamoDB");
-                return getItemResponse.Item[VALUE_KEY].B.ToArray();
+                var returnArray = getItemResponse.Item[VALUE_KEY].B.ToArray();
+                _logger.LogDebug($"Returning response from DynamoDB. Byte array has length {returnArray.Length}");
+                return returnArray;
             }
             else
             {
-                _logger.LogDebug("Response from DynamoDB was an Item that did not caontain a value in the value column. Returning null");
+                _logger.LogDebug("Response from DynamoDB was an Item that did not contain a value in the value column. Returning null");
                 return null;
             }
         }
@@ -168,7 +168,6 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Refresh(string key)
         {
-            _logger.LogDebug($"Refresh called with key {key}");
             RefreshAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
@@ -196,15 +195,17 @@ namespace AWS.DistributedCacheProvider
             }
             if (getItemResponse.Item[TTL_WINDOW].S != null)
             {
+                var currentTtl = UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DATE].N);
                 var options = new DistributedCacheEntryOptions
                 {
                     SlidingExpiration = TimeSpan.Parse(getItemResponse.Item[TTL_WINDOW].S),
                 };
                 if (getItemResponse.Item[TTL_DEADLINE].N != null)
                 {
-                    options.AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds((long)Convert.ToDouble(getItemResponse.Item[TTL_DEADLINE].N));
+                    options.AbsoluteExpiration = UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DEADLINE].N);
                 }
-                var ttl = DynamoDBCacheProviderHelper.CalculateTTL(options);
+                var ttlAttribute = DynamoDBCacheProviderHelper.CalculateTTL(options);
+                var newTtl = UnixSecondsToDateTimeOffset(ttlAttribute.N);
                 var updateItemRequest = new UpdateItemRequest
                 {
                     TableName = _tableName,
@@ -215,14 +216,14 @@ namespace AWS.DistributedCacheProvider
                         {
                             TTL_DATE, new AttributeValueUpdate
                             {
-                                Value = ttl
+                                Value = ttlAttribute
                             }
                         }
                     }
                 };
                 try
                 {
-                    _logger.LogDebug("Making UpdateItemAsync call to DynamoDB");
+                    _logger.LogDebug($"Making UpdateItemAsync call to DynamoDB. TTL was {currentTtl} and is now {newTtl}");
                     await _ddbClient.UpdateItemAsync(updateItemRequest, token);
                 }
                 catch(Exception e)
@@ -241,7 +242,6 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Remove(string key)
         {
-            _logger.LogDebug($"Remove called with key {key}");
             RemoveAsync(key, new CancellationToken()).GetAwaiter().GetResult();
         }
 
@@ -273,7 +273,6 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            _logger.LogDebug("Set called with key {key}, options {options}", key, options);
             SetAsync(key, value, options, new CancellationToken()).GetAwaiter().GetResult();
         }
 
@@ -298,6 +297,9 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(options));
             }
+            var ttlDate = DynamoDBCacheProviderHelper.CalculateTTL(options);
+            var ttlWindow = DynamoDBCacheProviderHelper.CalculateSlidingWindow(options);
+            var ttlDeadline = DynamoDBCacheProviderHelper.CalculateTTLDeadline(options);
             var putItemRequest = new PutItemRequest
             {
                 TableName = _tableName,
@@ -310,19 +312,45 @@ namespace AWS.DistributedCacheProvider
                         VALUE_KEY, new AttributeValue{ B = new MemoryStream(value)}
                     },
                     {
-                        TTL_DATE, DynamoDBCacheProviderHelper.CalculateTTL(options)
+                        TTL_DATE, ttlDate
                     },
                     {
-                        TTL_WINDOW, DynamoDBCacheProviderHelper.CalculateSlidingWindow(options)
+                        TTL_WINDOW, ttlWindow
                     },
                     {
-                        TTL_DEADLINE, DynamoDBCacheProviderHelper.CalculateTTLDeadline(options)
+                        TTL_DEADLINE, ttlDeadline
                     }
                 }
             };
             try
             {
-                _logger.LogDebug("Making a PutItemAsync call to DynamoDB");
+                var logStringBuilder = new StringBuilder();
+                logStringBuilder.Append("Making a PutItemAsync call to DynamoDB. ");
+                if(ttlDate.N != null)
+                {
+                    logStringBuilder.Append($"TTL for item is {UnixSecondsToDateTimeOffset(ttlDate.N)}. ");
+                }
+                else
+                {
+                    logStringBuilder.Append("TTL for item is undefined. ");
+                }
+                if (ttlDeadline.N != null)
+                {
+                    logStringBuilder.Append($"TTL Deadline for item is {UnixSecondsToDateTimeOffset(ttlDeadline.N)}. ");
+                }
+                else
+                {
+                    logStringBuilder.Append("TTL Deadline for item is undefined. ");
+                }
+                if (ttlWindow.S != null)
+                {
+                    logStringBuilder.Append($"TTL Window is {TimeSpan.Parse(ttlWindow.S)}. ");
+                }
+                else
+                {
+                    logStringBuilder.Append("TTL Window is undefined. ");
+                }
+                _logger.LogDebug(logStringBuilder.ToString());
                 await _ddbClient.PutItemAsync(putItemRequest, token);
             }
             catch (Exception e)
@@ -370,6 +398,33 @@ namespace AWS.DistributedCacheProvider
                     PRIMARY_KEY, new AttributeValue {S = key }
                 }
             };
+        }
+
+        /// <summary>
+        /// Simple helper method that converts a Unix timestamp in seconds to a DateTimeOffset object.
+        /// </summary>
+        /// <param name="seconds">The Unix time stamp in seconds</param>
+        /// <returns>The equivalent DateTimeOffset representation of the <paramref name="seconds"/></returns>
+        private DateTimeOffset UnixSecondsToDateTimeOffset(string seconds)
+        {
+            return DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(seconds));
+        }
+
+        /// <summary>
+        /// Returns a TimeSpan object that is represented by the <paramref name="timespan"/> string. If the string is
+        /// null the returned TimeSpan is of length zero.
+        /// </summary>
+        /// <param name="timespan">The string represtation of the TimeSpan</param>
+        /// <returns>Either the TimeSpan representated by the <paramref name="timespan"/> or a TimeSpan of length zero.</returns>
+        private TimeSpan StringToTimeSpanSafe(string timespan)
+        {
+            if(timespan != null)
+            {
+                return TimeSpan.Parse(timespan);
+            } else
+            {
+                return new TimeSpan(0);
+            }
         }
     }
 }

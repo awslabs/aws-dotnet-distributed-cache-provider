@@ -154,7 +154,7 @@ namespace AWS.DistributedCacheProvider.Internal
             var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
             {
-                _logger.LogDebug($"Distributed cache table {tableName} has Time to Live (TTL) disabled. Items will never be deleted " +
+                _logger.LogWarning($"Distributed cache table {tableName} has Time to Live (TTL) disabled. Items will never be deleted " +
                     $"automatically.It is recommended to enable TTL for the table to remove stale cached data.");
             }
             return ttlDesc.AttributeName ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME;
