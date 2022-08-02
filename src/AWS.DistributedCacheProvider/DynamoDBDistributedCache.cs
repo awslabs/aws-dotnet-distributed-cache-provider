@@ -85,6 +85,7 @@ namespace AWS.DistributedCacheProvider
                     {
                         await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
+                        //Check type because test classes use Mocked objects
                         if (_ddbClient is AmazonDynamoDBClient)
                         {
                             ((AmazonDynamoDBClient)_ddbClient).BeforeRequestEvent += DynamoDBSessionStateStore_BeforeRequestEvent;
@@ -101,14 +102,12 @@ namespace AWS.DistributedCacheProvider
 
         const string UserAgentHeader = "User-Agent";
         /// <summary>
-        /// Appends header to all requests made by DynamoDBClient in this class to reflect that the requets originated from this library.
+        /// Appends a unique header to the existing headers of all requests made by DynamoDBClient in this class to reflect that the requests originated from this library.
         /// </summary>
         void DynamoDBSessionStateStore_BeforeRequestEvent(object sender, RequestEventArgs e)
         {
-            Amazon.Runtime.WebServiceRequestEventArgs args = e as WebServiceRequestEventArgs;
-            if (args == null || !args.Headers.ContainsKey(UserAgentHeader))
+            if (e is not WebServiceRequestEventArgs args || !args.Headers.ContainsKey(UserAgentHeader))
                 return;
-
             args.Headers[UserAgentHeader] = args.Headers[UserAgentHeader] + " DynamoDBDistributedCache";
         }
 
