@@ -7,6 +7,7 @@ using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Amazon.Runtime;
+using System.Reflection;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -16,6 +17,7 @@ namespace AWS.DistributedCacheProvider
         private readonly IDynamoDBTableCreator _dynamodbTableCreator;
         private bool _started;
         private readonly SemaphoreSlim _semaphore = new(1, 1);
+        static readonly string _assemblyVersion = typeof(DynamoDBDistributedCache).GetTypeInfo().Assembly.GetName().Version.ToString();
 
         //configurable values
         private string _tableName { get; }
@@ -108,7 +110,7 @@ namespace AWS.DistributedCacheProvider
         {
             if (e is not WebServiceRequestEventArgs args || !args.Headers.ContainsKey(UserAgentHeader))
                 return;
-            args.Headers[UserAgentHeader] = args.Headers[UserAgentHeader] + " DynamoDBDistributedCache";
+            args.Headers[UserAgentHeader] = args.Headers[UserAgentHeader] + " DynamoDBDistributedCache/" + _assemblyVersion;
         }
 
         /// <summary>
