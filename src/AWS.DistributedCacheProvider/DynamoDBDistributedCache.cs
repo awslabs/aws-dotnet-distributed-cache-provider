@@ -6,6 +6,8 @@ using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Amazon.Runtime;
+using System.Reflection;
 using System.Text;
 
 namespace AWS.DistributedCacheProvider
@@ -16,6 +18,7 @@ namespace AWS.DistributedCacheProvider
         private readonly IDynamoDBTableCreator _dynamodbTableCreator;
         private bool _started;
         private readonly SemaphoreSlim _semaphore = new(1, 1);
+        static readonly string _assemblyVersion = typeof(DynamoDBDistributedCache).GetTypeInfo().Assembly.GetName().Version?.ToString() ?? string.Empty;
 
         //configurable values
         private string _tableName { get; }
@@ -71,7 +74,7 @@ namespace AWS.DistributedCacheProvider
         }
 
         /// <summary>
-        /// Make sure the backing datastore is up and running before accepting client requests
+        /// Make sure the backing datastore is up and running before accepting client requests. Also adds the User Agent Header to the DynamoDBClient
         /// </summary>
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         private async Task StartupAsync()
@@ -88,6 +91,11 @@ namespace AWS.DistributedCacheProvider
                         _logger.LogDebug("Started still set to false, Starting up.");
                         await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
+                        //Check type because test classes use Mocked objects
+                        if (_ddbClient is AmazonDynamoDBClient)
+                        {
+                            ((AmazonDynamoDBClient)_ddbClient).BeforeRequestEvent += DynamoDBSessionStateStore_BeforeRequestEvent;
+                        }
                         _started = true;
                     }
                     else
@@ -101,6 +109,17 @@ namespace AWS.DistributedCacheProvider
                     _semaphore.Release();
                 }
             }
+        }
+
+        const string UserAgentHeader = "User-Agent";
+        /// <summary>
+        /// Appends a unique header to the existing headers of all requests made by DynamoDBClient in this class to reflect that the requests originated from this library.
+        /// </summary>
+        void DynamoDBSessionStateStore_BeforeRequestEvent(object sender, RequestEventArgs e)
+        {
+            if (e is not WebServiceRequestEventArgs args || !args.Headers.ContainsKey(UserAgentHeader))
+                return;
+            args.Headers[UserAgentHeader] = args.Headers[UserAgentHeader] + " DynamoDBDistributedCache/" + _assemblyVersion;
         }
 
         /// <summary>
