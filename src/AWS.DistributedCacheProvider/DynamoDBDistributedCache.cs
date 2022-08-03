@@ -17,7 +17,7 @@ namespace AWS.DistributedCacheProvider
         private readonly IDynamoDBTableCreator _dynamodbTableCreator;
         private bool _started;
         private readonly SemaphoreSlim _semaphore = new(1, 1);
-        static readonly string _assemblyVersion = typeof(DynamoDBDistributedCache).GetTypeInfo().Assembly.GetName().Version.ToString();
+        static readonly string _assemblyVersion = typeof(DynamoDBDistributedCache).GetTypeInfo().Assembly.GetName().Version?.ToString() ?? string.Empty;
 
         //configurable values
         private string _tableName { get; }
