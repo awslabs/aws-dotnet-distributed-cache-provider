@@ -160,6 +160,11 @@ namespace AWS.DistributedCacheProvider
             }
             catch(Exception e)
             {
+                if (e is ResourceNotFoundException)
+                {
+                    _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key}. Returning null");
+                    return null;
+                }
                 throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
             }
             if (getItemResponse.Item.ContainsKey(VALUE_KEY))
