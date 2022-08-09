@@ -326,6 +326,30 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, ttl_deadline);
         }
 
+        [Fact]
+        public async void Get_Also_Refreshes()
+        {
+            var key = RandomString();
+            var value = Encoding.ASCII.GetBytes(RandomString());
+            //Set TTL_DATE to 6 hours from now
+            //Set TTL_DEADLINE to 18 hours from now
+            //Set TTL_WINDOW to 24 hours
+            var ttl_date = DateTimeOffset.UtcNow.AddHours(6).ToUnixTimeSeconds().ToString();
+            var ttl_deadline = DateTimeOffset.UtcNow.AddHours(18).ToUnixTimeSeconds().ToString();
+            var ttl_window = new TimeSpan(24, 0, 0).ToString();
+            ManualPut(key, value, new AttributeValue { N = ttl_date },
+                new AttributeValue { N = ttl_deadline }, new AttributeValue { S = ttl_window });
+            //Instead of Refresh, call Get to have the same result
+            _cache.Get(key);
+            var resp = await GetItemAsync(key);
+            //window stays the same
+            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S, ttl_window);
+            //refresh moves TTL_DATE to be equal to TTL_DEADLINE
+            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DATE].N, resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N);
+            //deadline stays the same
+            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, ttl_deadline);
+        }
+
         public static string RandomString()
         {
             var random = new Random();
