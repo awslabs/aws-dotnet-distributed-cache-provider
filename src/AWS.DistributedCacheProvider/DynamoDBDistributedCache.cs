@@ -215,6 +215,11 @@ namespace AWS.DistributedCacheProvider
             }
             catch (Exception e)
             {
+                if (e is ResourceNotFoundException)
+                {
+                    _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key}.");
+                    return;
+                }
                 throw new DynamoDBDistributedCacheException($"Failed to get item with key {key}. Caused by {e.Message}", e);
             }
             if (getItemResponse.Item[TTL_WINDOW].S != null)
@@ -252,6 +257,11 @@ namespace AWS.DistributedCacheProvider
                 }
                 catch(Exception e)
                 {
+                    if (e is ResourceNotFoundException)
+                    {
+                        _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key} while trying to update the Item.");
+                        return;
+                    }
                     throw new DynamoDBDistributedCacheException($"Failed to refresh the TTL for the cache item: {e.Message}", e);
                 }
             }
@@ -288,6 +298,11 @@ namespace AWS.DistributedCacheProvider
             }
             catch (Exception e)
             {
+                if (e is ResourceNotFoundException)
+                {
+                    _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key}.");
+                    return;
+                }
                 throw new DynamoDBDistributedCacheException($"Failed to delete item with key {key}, Caused by {e.Message}", e);
             }
         }
