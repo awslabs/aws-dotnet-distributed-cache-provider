@@ -45,11 +45,11 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="ArgumentNullException"></exception>
         public DynamoDBDistributedCache(IAmazonDynamoDB client, IDynamoDBTableCreator creator, DynamoDBDistributedCacheOptions options, ILoggerFactory? loggerFactory = null)
         {
-            if(client == null)
+            if (client == null)
             {
                 throw new ArgumentNullException(nameof(client));
             }
-            if(options == null)
+            if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
@@ -79,7 +79,7 @@ namespace AWS.DistributedCacheProvider
         /// <exception cref="InvalidTableException"> When the table being used is invalid to be used as a cache</exception>"
         private async Task StartupAsync()
         {
-            if(!_started)
+            if (!_started)
             {
                 _logger.LogDebug("Cache has not started yet. Attempting startup");
                 await _semaphore.WaitAsync().ConfigureAwait(false);
@@ -146,45 +146,7 @@ namespace AWS.DistributedCacheProvider
         public async Task<byte[]?> GetAsync(string key, CancellationToken token = default)
         {
             _logger.LogDebug($"GetAsync called with key {key}");
-            await StartupAsync();
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-            var getItemRequest = CreateGetItemRequest(key);
-            GetItemResponse getItemResponse;
-            try
-            {
-                _logger.LogDebug("Making GetItemSync call to DynamoDB");
-                getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
-            }
-            catch(Exception e)
-            {
-                if (e is ResourceNotFoundException)
-                {
-                    _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key}. Returning null");
-                    return null;
-                }
-                throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
-            }
-            if (getItemResponse.Item.ContainsKey(VALUE_KEY))
-            {
-                //Check even if the Item is present, but its TTL has expired. DynamoDB can take up to 48 hours to remove expired items
-                if (getItemResponse.Item[TTL_DATE].N != null &&
-                    DateTimeOffset.UtcNow.CompareTo(UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DATE].N)) > 0)
-                {
-                    _logger.LogDebug("Response from DynamoDB did contain a value, but the TTL of the item has passed. Returning null");
-                    return null;
-                }
-                var returnArray = getItemResponse.Item[VALUE_KEY].B.ToArray();
-                _logger.LogDebug($"Returning response from DynamoDB. Byte array has length {returnArray.Length}");
-                return returnArray;
-            }
-            else
-            {
-                _logger.LogDebug("Response from DynamoDB was an Item that did not contain a value in the value column. Returning null");
-                return null;
-            }
+            return await GetAndRefreshAsync(key, token);
         }
 
         ///<inheritdoc />
@@ -201,64 +163,7 @@ namespace AWS.DistributedCacheProvider
         public async Task RefreshAsync(string key, CancellationToken token = default)
         {
             _logger.LogDebug($"RefreshAsync called with key {key}");
-            await StartupAsync();
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-            var getItemRequest = CreateGetItemRequest(key);
-            GetItemResponse getItemResponse;
-            try
-            {
-                _logger.LogDebug("Making GetItemSync call to DynamoDB");
-                getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
-            }
-            catch (Exception e)
-            {
-                throw new DynamoDBDistributedCacheException($"Failed to get item with key {key}. Caused by {e.Message}", e);
-            }
-            if (getItemResponse.Item[TTL_WINDOW].S != null)
-            {
-                var currentTtl = UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DATE].N);
-                var options = new DistributedCacheEntryOptions
-                {
-                    SlidingExpiration = TimeSpan.Parse(getItemResponse.Item[TTL_WINDOW].S),
-                };
-                if (getItemResponse.Item[TTL_DEADLINE].N != null)
-                {
-                    options.AbsoluteExpiration = UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DEADLINE].N);
-                }
-                var ttlAttribute = DynamoDBCacheProviderHelper.CalculateTTL(options);
-                var newTtl = UnixSecondsToDateTimeOffset(ttlAttribute.N);
-                var updateItemRequest = new UpdateItemRequest
-                {
-                    TableName = _tableName,
-                    Key = CreateDictionaryWithPrimaryKey(key),
-                    AttributeUpdates = new Dictionary<string, AttributeValueUpdate>
-                    {
-                        //On refresh we only move the TTL_DATE. the TTL_WINDOW and TTL_DEADLINE stay the same.
-                        {
-                            TTL_DATE, new AttributeValueUpdate
-                            {
-                                Value = ttlAttribute
-                            }
-                        }
-                    }
-                };
-                try
-                {
-                    _logger.LogDebug($"Making UpdateItemAsync call to DynamoDB. TTL was {currentTtl} and is now {newTtl}");
-                    await _ddbClient.UpdateItemAsync(updateItemRequest, token);
-                }
-                catch(Exception e)
-                {
-                    throw new DynamoDBDistributedCacheException($"Failed to refresh the TTL for the cache item: {e.Message}", e);
-                }
-            }
-            else
-            {
-                _logger.LogDebug("Item response from DynamoDB did not contain a value in the TTL column.");
-            }
+            await GetAndRefreshAsync(key, token);
         }
 
         ///<inheritdoc />
@@ -288,6 +193,11 @@ namespace AWS.DistributedCacheProvider
             }
             catch (Exception e)
             {
+                if (e is ResourceNotFoundException)
+                {
+                    _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key}.");
+                    return;
+                }
                 throw new DynamoDBDistributedCacheException($"Failed to delete item with key {key}, Caused by {e.Message}", e);
             }
         }
@@ -435,6 +345,107 @@ namespace AWS.DistributedCacheProvider
         private DateTimeOffset UnixSecondsToDateTimeOffset(string seconds)
         {
             return DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(seconds));
+        }
+
+        /// <summary>
+        /// Retrieves the value associated with <paramref name="key"/> in the cache and updates the Item's TTL.
+        /// If there is no value associated with the <paramref name="key"/> or there is a value, but the Item's TTL
+        /// has already passed, then this method returns null. 
+        /// </summary>
+        /// <param name="key">The primary key for the value</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">When the <paramref name="key"/> is null.</exception>
+        /// <exception cref="DynamoDBDistributedCacheException">When an exception is thrown interacting with DynamoDB.</exception>
+        private async Task<byte[]?> GetAndRefreshAsync(string key, CancellationToken token = default)
+        {
+            _logger.LogDebug($"GetAndRefreshAsync called with key {key}");
+            await StartupAsync();
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            var getItemRequest = CreateGetItemRequest(key);
+            GetItemResponse getItemResponse;
+            try
+            {
+                _logger.LogDebug("Making GetItemSync call to DynamoDB");
+                getItemResponse = await _ddbClient.GetItemAsync(getItemRequest, token);
+            }
+            catch (Exception e)
+            {
+                if (e is ResourceNotFoundException)
+                {
+                    _logger.LogDebug($"DynamoDB did not find an Item associated with the key {key}");
+                    return null;
+                }
+                throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
+            }
+            //Check if there is a value we should be returning to the client. If there is no value, there is no reason to refresh the Item
+            if (getItemResponse.Item.ContainsKey(VALUE_KEY))
+            {
+                //Item is present, but check if its TTL has expired. DynamoDB can take up to 48 hours to remove expired items.
+                //Also no need to refresh the Item if it has expired
+                if (getItemResponse.Item.ContainsKey(TTL_DATE) && getItemResponse.Item[TTL_DATE].N != null &&
+                    DateTimeOffset.UtcNow.CompareTo(UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DATE].N)) > 0)
+                {
+                    _logger.LogDebug("Response from DynamoDB did contain a value, but the TTL of the item has passed");
+                    return null;
+                }
+                //Item is present in cache and not yet expired. Try to refresh the item.
+                //Refreshing does not make sense unless there is both a TTL_WINDOW and a TTL_DATE
+                if (getItemResponse.Item.ContainsKey(TTL_WINDOW) && getItemResponse.Item[TTL_WINDOW].S != null &&
+                        getItemResponse.Item.ContainsKey(TTL_DATE) && getItemResponse.Item[TTL_DATE].N != null)
+                {
+                    var currentTtl = UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DATE].N);
+                    var options = new DistributedCacheEntryOptions
+                    {
+                        SlidingExpiration = TimeSpan.Parse(getItemResponse.Item[TTL_WINDOW].S),
+                    };
+                    if (getItemResponse.Item.ContainsKey(TTL_DEADLINE) && getItemResponse.Item[TTL_DEADLINE].N != null)
+                    {
+                        options.AbsoluteExpiration = UnixSecondsToDateTimeOffset(getItemResponse.Item[TTL_DEADLINE].N);
+                    }
+                    var ttlAttribute = DynamoDBCacheProviderHelper.CalculateTTL(options);
+                    var newTtl = UnixSecondsToDateTimeOffset(ttlAttribute.N);
+                    var updateItemRequest = new UpdateItemRequest
+                    {
+                        TableName = _tableName,
+                        Key = CreateDictionaryWithPrimaryKey(key),
+                        AttributeUpdates = new Dictionary<string, AttributeValueUpdate>
+                        {
+                            //On refresh we only move the TTL_DATE. the TTL_WINDOW and TTL_DEADLINE stay the same.
+                            {
+                                TTL_DATE, new AttributeValueUpdate
+                                {
+                                    Value = ttlAttribute
+                                }
+                            }
+                        }
+                    };
+                    try
+                    {
+                        _logger.LogDebug($"Making UpdateItemAsync call to DynamoDB. TTL was {currentTtl} and is now {newTtl}");
+                        await _ddbClient.UpdateItemAsync(updateItemRequest, token);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning($"Cache failed to update the TTL for Item associated with key {key} " +
+                            $"after retrieving it from Dynamo. Still returning the item retrieved. Caused by {e.Message}", e);
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug("Item response from DynamoDB did not contain enough information about its TTL to refresh.");
+                }
+                var returnArray = getItemResponse.Item[VALUE_KEY].B.ToArray();
+                _logger.LogDebug($"Returning response from DynamoDB. Byte array has length {returnArray.Length}");
+                return returnArray;
+            }
+            else
+            {
+                _logger.LogDebug("Response from DynamoDB was an Item that did not contain a value in the value column");
+                return null;
+            }
         }
     }
 }
