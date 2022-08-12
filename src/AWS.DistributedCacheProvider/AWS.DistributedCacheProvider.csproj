@@ -11,10 +11,10 @@
 		<PackageId>AWS.DistributedCacheProvider</PackageId>
 		<Title>AWS Distributed Cache Provider for DynamoDB</Title>
 		<Product>WS.DistributedCacheProvider</Product>
-		<Description>The AWS Distributed Cache provider abstracts caching on DynamoDB to a basic CRUD interface.</Description>
+		<Description>The AWS Distributed Cache provider provides an IDistributedCache implementation backed by DynamoDB.</Description>
 		<Authors>Amazon Web Services</Authors>
 		<Copyright>Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.</Copyright>
-		<PackageTags>AWS;DynamoDB;Caching</PackageTags>
+		<PackageTags>AWS;DynamoDB;Caching;IDistributedCache</PackageTags>
 		<PackageProjectUrl>https://github.com/aws/aws-dotnet-distributed-cache-provider/</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
 		<RepositoryUrl>https://github.com/aws/aws-dotnet-distributed-cache-provider/</RepositoryUrl>
