@@ -355,7 +355,7 @@ namespace AWS.DistributedCacheProvider
         /// <param name="key">The primary key for the value</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException">When the <paramref name="key"/> is null.</exception>
-        /// <exception cref="DynamoDBDistributedCacheException">When there is an underlying error with communication with DynamoDB.</exception>
+        /// <exception cref="DynamoDBDistributedCacheException">When an exception is thrown interacting with DynamoDB.</exception>
         private async Task<byte[]?> GetAndRefreshAsync(string key, CancellationToken token = default)
         {
             _logger.LogDebug($"GetAndRefreshAsync called with key {key}");
