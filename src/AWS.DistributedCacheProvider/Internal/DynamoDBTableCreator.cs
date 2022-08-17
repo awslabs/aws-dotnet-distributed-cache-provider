@@ -31,7 +31,7 @@ namespace AWS.DistributedCacheProvider.Internal
         }
 
         /// <inheritdoc/>
-        public async Task CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
+        public async Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
         {
             _logger.LogDebug($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}.");
             try
@@ -42,16 +42,18 @@ namespace AWS.DistributedCacheProvider.Internal
                     TableName = tableName
                 });
                 _logger.LogDebug("Table does exist. Validating");
-                ValidateTable(resp.Table);
-                _logger.LogInformation($"DynamoDB distributed cache provider configured to use table {tableName}.");
+                var primary_key = ValidateTable(resp.Table);
+                _logger.LogInformation($"DynamoDB distributed cache provider configured to use table {tableName}. Primary key is {primary_key}");
+                return primary_key;
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
                 _logger.LogDebug("Table does not exist");
                 if (create)
                 {
-                    await CreateTableAsync(client, tableName, ttlAttribute);
-                    _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}.");
+                    var primary_key = await CreateTableAsync(client, tableName, ttlAttribute);
+                    _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}. Primary key is {primary_key}");
+                    return primary_key;
                 }
                 else
                 {
@@ -65,8 +67,9 @@ namespace AWS.DistributedCacheProvider.Internal
         /// </summary>
         /// <param name="description">A table description <see cref="TableDescription"/></param>
         /// <exception cref="InvalidTableException">Thrown when key Schema is invalid</exception>
-        private void ValidateTable(TableDescription description)
+        private string ValidateTable(TableDescription description)
         {
+            string primary_key_name = "";
             foreach (var key in description.KeySchema)
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
@@ -85,7 +88,10 @@ namespace AWS.DistributedCacheProvider.Internal
                         }
                     }
                 }
+                //If there is an element in the key schema that is of type Hash and is a string, it must be the primary key
+                primary_key_name = key.AttributeName;
             }
+            return primary_key_name;
         }
 
         /// <summary>
@@ -94,8 +100,9 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <param name="client">DynamoDB client</param>
         /// <param name="tableName">Table name</param>
         /// <param name="ttlAttribute">TTL attribute name</param>
-        private async Task CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute)
+        private async Task<string> CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute)
         {
+            var primary_key_name = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
             var createRequest = new CreateTableRequest
             {
                 TableName = tableName,
@@ -103,7 +110,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     new KeySchemaElement
                     {
-                        AttributeName = DynamoDBDistributedCache.PRIMARY_KEY,
+                        AttributeName = primary_key_name,
                         KeyType = KeyType.HASH
                     }
                 },
@@ -111,7 +118,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     new AttributeDefinition
                     {
-                        AttributeName = DynamoDBDistributedCache.PRIMARY_KEY,
+                        AttributeName = primary_key_name,
                         AttributeType = ScalarAttributeType.S
                     }
                 },
@@ -146,6 +153,7 @@ namespace AWS.DistributedCacheProvider.Internal
                     Enabled = true
                 }
             });
+            return primary_key_name;
         }
 
         /// <inheritdoc/>

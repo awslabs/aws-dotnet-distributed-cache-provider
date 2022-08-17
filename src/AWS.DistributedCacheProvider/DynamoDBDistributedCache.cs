@@ -24,10 +24,11 @@ namespace AWS.DistributedCacheProvider
         private string _tableName { get; }
         private readonly bool _consistentReads;
         private string _ttlAttributeName;
+        private string _primary_key;
         private readonly bool _createTableifNotExists;
 
         //Const values for columns
-        public const string PRIMARY_KEY = "primary_key";//column that the key for the entry is stored
+        public const string DEFAULT_PRIMARY_KEY = "primary_key";//column that the key for the entry is stored
         public const string DEFAULT_TTL_ATTRIBUTE_NAME = TTL_DATE;
         public const string VALUE_KEY = "value_key";
         public const string TTL_DATE = "ttl_date";//The column name that stores the Time To Live of an Item
@@ -89,7 +90,7 @@ namespace AWS.DistributedCacheProvider
                     if (!_started)
                     {
                         _logger.LogDebug("Started still set to false, Starting up.");
-                        await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
+                        _primary_key = await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
                         //Check type because test classes use Mocked objects
                         if (_ddbClient is AmazonDynamoDBClient)
@@ -240,7 +241,7 @@ namespace AWS.DistributedCacheProvider
                 Item = new Dictionary<string, AttributeValue>()
                 {
                     {
-                        PRIMARY_KEY, new AttributeValue{S = key}
+                        _primary_key, new AttributeValue{S = key}
                     },
                     {
                         VALUE_KEY, new AttributeValue{ B = new MemoryStream(value)}
@@ -324,7 +325,7 @@ namespace AWS.DistributedCacheProvider
         }
 
         /// <summary>
-        /// Creates a Dictionary of string to AttributeValue where the only entry is a pair mapping of the PRIMARY_KEY attribute value to the <paramref name="key"/>
+        /// Creates a Dictionary of string to AttributeValue where the only entry is a pair mapping of the Primary Key attribute value to the <paramref name="key"/>
         /// </summary>
         /// <param name="key">The primary key value</param>
         private Dictionary<string, AttributeValue> CreateDictionaryWithPrimaryKey(string key)
@@ -332,7 +333,7 @@ namespace AWS.DistributedCacheProvider
             return new Dictionary<string, AttributeValue>()
             {
                 {
-                    PRIMARY_KEY, new AttributeValue {S = key }
+                    _primary_key, new AttributeValue {S = key }
                 }
             };
         }
