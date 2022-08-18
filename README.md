@@ -57,6 +57,8 @@ var app = builder.Build();
 ...
 ```
 
+# Dependencies
+
 The library has the following dependencies
 * [AWSSDK.DynamoDBv2](https://www.nuget.org/packages/AWSSDK.DynamoDBv2)
 * [AWSSDK.Extensions.NETCore.Setup](https://www.nuget.org/packages/AWSSDK.Extensions.NETCore.Setup/)
