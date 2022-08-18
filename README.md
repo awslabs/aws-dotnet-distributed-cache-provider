@@ -3,14 +3,6 @@
 # AWS .NET Distributed Cache Provider
 AWS Dotnet Distributed Cache Provider provides an implementation on IDistributedCache backed by AWS DynamoDB.
 
-The library has the following dependencies
-* [AWSSDK.DynamoDBv2](https://www.nuget.org/packages/AWSSDK.DynamoDBv2)
-* [AWSSDK.Extensions.NETCore.Setup](https://www.nuget.org/packages/AWSSDK.Extensions.NETCore.Setup/)
-* [Microsoft.Extensions.Caching.Abstractions](https://www.nuget.org/packages/Microsoft.Extensions.Caching.Abstractions)
-* [Microsoft.Extensions.DependencyInjection.Abstractions](https://www.nuget.org/packages/Microsoft.Extensions.DependencyInjection.Abstractions)
-* [Microsoft.Extensions.Options](https://www.nuget.org/packages/Microsoft.Extensions.Options)
-
-
 # Getting Started
 .NET has an interface for distributed caching called [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-6.0). This library provides an implementation that uses AWS DynamoDB as the underlying datastore.
 
@@ -64,6 +56,14 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 ...
 ```
+
+The library has the following dependencies
+* [AWSSDK.DynamoDBv2](https://www.nuget.org/packages/AWSSDK.DynamoDBv2)
+* [AWSSDK.Extensions.NETCore.Setup](https://www.nuget.org/packages/AWSSDK.Extensions.NETCore.Setup/)
+* [Microsoft.Extensions.Caching.Abstractions](https://www.nuget.org/packages/Microsoft.Extensions.Caching.Abstractions)
+* [Microsoft.Extensions.DependencyInjection.Abstractions](https://www.nuget.org/packages/Microsoft.Extensions.DependencyInjection.Abstractions)
+* [Microsoft.Extensions.Options](https://www.nuget.org/packages/Microsoft.Extensions.Options)
+
 
 # Getting Help
 
