@@ -1,7 +1,7 @@
 ![.NET on AWS Banner](./logo.png ".NET on AWS")
 
 # AWS .NET Distributed Cache Provider
-AWS Dotnet Distributed Cache Provider provides an implmentation on IDistributedCache backed by AWS DynamoDB.
+AWS Dotnet Distributed Cache Provider provides an implementation on IDistributedCache backed by AWS DynamoDB.
 
 The library has the following dependencies
 * [AWSSDK.DynamoDBv2](https://www.nuget.org/packages/AWSSDK.DynamoDBv2)
@@ -12,18 +12,18 @@ The library has the following dependencies
 
 
 # Getting Started
-.NET has an interface for distributed caching called [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-6.0). This library provides an implementation that uses AWS DyanmoDB as the underlying datastore.
+.NET has an interface for distributed caching called [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-6.0). This library provides an implementation that uses AWS DynamoDB as the underlying datastore.
 
 .NET's convention is to use Dependency Injection to provide services to different aspects of an application's logic. This library provides Extensions to assist the user in injecting this implementation of IDistributedCache as a service for other services to consume. 
 
-This library also provides some configuration options to help fit this library into the customer's application
+This library also provides some configuration options to help fit this library into your application.
 
 ## Sample
-For example, if you were building an application that requires the use of sessions in a distributed webapp, .NET's Session provider looks for an implementation of IDistributedCache to store the session data. We can direct the session service to use our distributed cache service using dependency Injection
+For example, if you are building an application that requires the use of sessions in a distributed webapp, .NET's session state middleware looks for an implementation of IDistributedCache to store the session data. We can direct the session service to use our distributed cache implementation using dependency Injection
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddAWSDynamoDBDistributedCache("dynamo_sessions_cache_table");
+builder.Services.AddAWSDynamoDBDistributedCache("existing_dynamo_sessions_cache_table");
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromSeconds(90);
@@ -33,16 +33,18 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 ...
 ```
-Where `dynamo_sessions_cache_table` is the name of the underlying table. 
+Where `existing_dynamo_sessions_cache_table` is the name of the underlying table. 
 
-There are a few configurable options that the user has at their discretion to use.
-* TableName - string - The name of the table to be used as the underlying table
-* CreateTableIfNotExists - boolean - If the table specified does not exist, should the library create the table
-* * It should be noted that when this feature is used, it does not turn on Health Checks on the new DynamoDB Table. The user should strongly consider turning this on if the cache needs to be highly available in the user's application. See more [here](https://aws.amazon.com/builders-library/implementing-health-checks/).
-* ConsistentReads - boolean - DynamoDB is a distributed eventually consistent database, which means that a given time, its not a guarantee that all the replications have the same data for a given item. The user has the option to require data reads be consistent across all replications to make sure it is the most up to date value, although at a performance hit. See more [Here](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html)
-* TTLAttributeName - string - One of DynamoDB's features is Time To Live (TTL) where we can specify how long an item should remain in the database before it is deleted. IDistributedCache's [Set](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache.set?view=dotnet-plat-ext-6.0#microsoft-extensions-caching-distributed-idistributedcache-set(system-string-system-byte()-microsoft-extensions-caching-distributed-distributedcacheentryoptions)) function takes a [parameter](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.distributedcacheentryoptions?view=dotnet-plat-ext-6.0) specifiying this information. The user has the option to set the attribute name this information will stored under in the DynamoDB Table.
+For more information about .NET's session state middleware, see [this article](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-6.0) and specifically [this section](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-6.0#configure-session-state).
 
-The options can be used in the following way
+Here are the available options to configure the `DynamoDBDistributedCache`.
+* **TableName** - string - required - The name of an existing table that will be used to store the cache data.
+* **CreateTableIfNotExists** - boolean - optional - If the table specified does not exist, should the library create the table
+     * It should be noted that when DynamoDBDistributedCache creates a table, it does not turn on Health Checks on the new DynamoDB Table. The user should strongly consider turning this on if the cache needs to be highly available in the user's application. See more [here](https://aws.amazon.com/builders-library/implementing-health-checks/).
+* **ConsistentReads** - boolean - optional - By default, DynamoDB offers "eventually consistent reads" which may not reflect the results of a recently completed write operation. Set this to true to enforce "strongly consistent reads", which will return the most up-to-date data. Enabling strongly consistent reads may have higher latency and use more throughput capacity. See more [Here](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html).
+* **TTLAttributeName** - string - optional - One of DynamoDB's features is Time To Live (TTL) where we can specify how long an item should remain in the database before it is deleted. IDistributedCache's [Set](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache.set?view=dotnet-plat-ext-6.0#microsoft-extensions-caching-distributed-idistributedcache-set(system-string-system-byte()-microsoft-extensions-caching-distributed-distributedcacheentryoptions)) function takes a [DistributedCacheEntryOptions parameter](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.distributedcacheentryoptions?view=dotnet-plat-ext-6.0) specifiying this information. The user has the option to set the attribute name this information will stored under in the DynamoDB Table.
+
+The options can be used in the following way:
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAWSDynamoDBDistributedCache(options =>
@@ -62,7 +64,6 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 ...
 ```
-It is important to note that only the `TableName` is a required parameter, the other three are optional. 
 
 # Getting Help
 
