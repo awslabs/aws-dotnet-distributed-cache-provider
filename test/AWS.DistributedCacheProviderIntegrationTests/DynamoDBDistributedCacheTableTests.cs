@@ -208,6 +208,9 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
         }
 
+        /// <summary>
+        /// Tests that DynamoDBTableCreator sets the DynamoDB TTL feature to the attribute the user specifies
+        /// </summary>
         [Fact]
         public async void CreateTableWithCustomTTLKey()
         {
@@ -247,6 +250,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             }
         }
 
+        /// <summary>
+        /// Verifies that if the table was already created by the user in a different context with TTL already enabled on an
+        /// attribute that is different from the library default attribute name, the cache still recognizes the correct TTL
+        /// attribute. 
+        /// </summary>
         [Fact]
         public async void LoadTableWithCustomTTLKey()
         {
