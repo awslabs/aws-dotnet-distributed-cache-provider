@@ -69,7 +69,7 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <exception cref="InvalidTableException">Thrown when key Schema is invalid</exception>
         private string ValidateTable(TableDescription description)
         {
-            string primary_key_name = "";
+            var primaryKeyName = "";
             foreach (var key in description.KeySchema)
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
@@ -89,9 +89,9 @@ namespace AWS.DistributedCacheProvider.Internal
                     }
                 }
                 //If there is an element in the key schema that is of type Hash and is a string, it must be the primary key
-                primary_key_name = key.AttributeName;
+                primaryKeyName = key.AttributeName;
             }
-            return primary_key_name;
+            return primaryKeyName;
         }
 
         /// <summary>

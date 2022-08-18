@@ -24,7 +24,7 @@ namespace AWS.DistributedCacheProvider
         private string _tableName { get; }
         private readonly bool _consistentReads;
         private string _ttlAttributeName;
-        private string _primary_key;
+        private string _primaryKey;
         private readonly bool _createTableifNotExists;
 
         //Const values for columns
@@ -72,6 +72,7 @@ namespace AWS.DistributedCacheProvider
             _tableName = options.TableName;
             _ttlAttributeName = options.TTLAttributeName ?? DEFAULT_TTL_ATTRIBUTE_NAME;
             _createTableifNotExists = options.CreateTableIfNotExists;
+            _primaryKey = DEFAULT_PRIMARY_KEY;
         }
 
         /// <summary>
@@ -90,7 +91,7 @@ namespace AWS.DistributedCacheProvider
                     if (!_started)
                     {
                         _logger.LogDebug("Started still set to false, Starting up.");
-                        _primary_key = await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
+                        _primaryKey = await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
                         //Check type because test classes use Mocked objects
                         if (_ddbClient is AmazonDynamoDBClient)
@@ -241,7 +242,7 @@ namespace AWS.DistributedCacheProvider
                 Item = new Dictionary<string, AttributeValue>()
                 {
                     {
-                        _primary_key, new AttributeValue{S = key}
+                        _primaryKey, new AttributeValue{S = key}
                     },
                     {
                         VALUE_KEY, new AttributeValue{ B = new MemoryStream(value)}
@@ -333,7 +334,7 @@ namespace AWS.DistributedCacheProvider
             return new Dictionary<string, AttributeValue>()
             {
                 {
-                    _primary_key, new AttributeValue {S = key }
+                    _primaryKey, new AttributeValue {S = key }
                 }
             };
         }
