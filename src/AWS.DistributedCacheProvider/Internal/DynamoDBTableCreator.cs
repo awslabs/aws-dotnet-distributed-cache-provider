@@ -42,18 +42,18 @@ namespace AWS.DistributedCacheProvider.Internal
                     TableName = tableName
                 });
                 _logger.LogDebug("Table does exist. Validating");
-                var primary_key = ValidateTable(resp.Table);
-                _logger.LogInformation($"DynamoDB distributed cache provider configured to use table {tableName}. Primary key is {primary_key}");
-                return primary_key;
+                var primaryKey = ValidateTable(resp.Table);
+                _logger.LogInformation($"DynamoDB distributed cache provider configured to use table {tableName}. Primary key is {primaryKey}");
+                return primaryKey;
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
                 _logger.LogDebug("Table does not exist");
                 if (create)
                 {
-                    var primary_key = await CreateTableAsync(client, tableName, ttlAttribute);
-                    _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}. Primary key is {primary_key}");
-                    return primary_key;
+                    var primaryKey = await CreateTableAsync(client, tableName, ttlAttribute);
+                    _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}. Primary key is {primaryKey}");
+                    return primaryKey;
                 }
                 else
                 {
@@ -102,7 +102,7 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <param name="ttlAttribute">TTL attribute name</param>
         private async Task<string> CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute)
         {
-            var primary_key_name = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
+            var primaryKey = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
             var createRequest = new CreateTableRequest
             {
                 TableName = tableName,
@@ -110,7 +110,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     new KeySchemaElement
                     {
-                        AttributeName = primary_key_name,
+                        AttributeName = primaryKey,
                         KeyType = KeyType.HASH
                     }
                 },
@@ -118,7 +118,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     new AttributeDefinition
                     {
-                        AttributeName = primary_key_name,
+                        AttributeName = primaryKey,
                         AttributeType = ScalarAttributeType.S
                     }
                 },
@@ -153,7 +153,7 @@ namespace AWS.DistributedCacheProvider.Internal
                     Enabled = true
                 }
             });
-            return primary_key_name;
+            return primaryKey;
         }
 
         /// <inheritdoc/>
