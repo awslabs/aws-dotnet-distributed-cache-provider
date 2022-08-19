@@ -38,7 +38,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should pass.
                 //Key cannot be empty, otherwise the client will throw an exception
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
             }
             finally
             {
@@ -91,7 +91,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should pass.
                 //Key cannot be empty, otherwise the client will throw an exception
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
             }
             finally
             {
@@ -254,7 +254,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //If the library recognizes the new primary key, this test passes by this
                 //not throwing an error. Otherwise DynamoDB with throw an error
                 //saying we have an invalid schema in our GetItem call.
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
             }
             finally
             {
@@ -287,7 +287,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                     options.CreateTableIfNotExists = true;
                     options.TTLAttributeName = ttl_attribute_name;
                 });
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
                 //The cache uses a DescribeTimeToLiveAsync to find the TTL Attribute name. If we verify here that it has the right name,
                 //the cache should have the right name also.
                 var ttlDescription = await client.DescribeTimeToLiveAsync(tableName);
@@ -357,7 +357,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                     options.TableName = tableName;
                     options.CreateTableIfNotExists = false;
                 });
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
                 //The cache uses a DescribeTimeToLiveAsync to find the TTL Attribute name. If we verify here that it has the right name,
                 //the cache should have the right name also.
                 var ttlDescription = await client.DescribeTimeToLiveAsync(tableName);
