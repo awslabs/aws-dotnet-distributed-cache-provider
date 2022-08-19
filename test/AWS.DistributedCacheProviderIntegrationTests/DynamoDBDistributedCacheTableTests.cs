@@ -38,7 +38,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should pass.
                 //Key cannot be empty, otherwise the client will throw an exception
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
             }
             finally
             {
@@ -91,7 +91,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should pass.
                 //Key cannot be empty, otherwise the client will throw an exception
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
             }
             finally
             {
@@ -254,7 +254,118 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //If the library recognizes the new primary key, this test passes by this
                 //not throwing an error. Otherwise DynamoDB with throw an error
                 //saying we have an invalid schema in our GetItem call.
-                cache.Get("blah");
+                cache.Get("randomCacheKey");
+            }
+            finally
+            {
+                await CleanupTable(client, tableName);
+            }
+        }
+
+        /// <summary>
+        /// Tests that DynamoDBTableCreator sets the DynamoDB TTL feature to the attribute the user specifies
+        /// </summary>
+        [Fact]
+        public async void CreateTableWithCustomTTLKey()
+        {
+            var ttl_attribute_name = "MyTTLAttributeName";
+            var tableName = TABLE_NAME_PREFIX + "table_test_4";
+            var client = new AmazonDynamoDBClient();
+            try
+            {
+                //First verify that a table with this name does not already exist.
+                try
+                {
+                    _ = await client.DescribeTableAsync(tableName);
+                    //If no exception was thrown, then the table already exists, bad state for test.
+                    throw new XunitException("Table already exists, cannot create table");
+                }
+                catch (ResourceNotFoundException) { }
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = true;
+                    options.TTLAttributeName = ttl_attribute_name;
+                });
+                cache.Get("randomCacheKey");
+                //The cache uses a DescribeTimeToLiveAsync to find the TTL Attribute name. If we verify here that it has the right name,
+                //the cache should have the right name also.
+                var ttlDescription = await client.DescribeTimeToLiveAsync(tableName);
+                Assert.Equal(ttl_attribute_name, ttlDescription.TimeToLiveDescription.AttributeName);
+                //It can take time for the status to be fully enabled. So we check for both enabled and enabling.
+                //Both states are acceptable
+                Assert.True(ttlDescription.TimeToLiveDescription.TimeToLiveStatus.Equals(TimeToLiveStatus.ENABLING) ||
+                    ttlDescription.TimeToLiveDescription.TimeToLiveStatus.Equals(TimeToLiveStatus.ENABLED));
+            }
+            finally
+            {
+                //Delete DynamoDB table
+                await CleanupTable(client, tableName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that if the table was already created by the user in a different context with TTL already enabled on an
+        /// attribute that is different from the library default attribute name, the cache still recognizes the correct TTL
+        /// attribute. 
+        /// </summary>
+        [Fact]
+        public async void LoadTableWithCustomTTLKey()
+        {
+            var ttl_attribute_name = "MyTTLAttributeName";
+            var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
+            var tableName = TABLE_NAME_PREFIX + "table_test_5";
+            var client = new AmazonDynamoDBClient();
+            //Valid table - Non-composite Hash key of type String.
+            var request = new CreateTableRequest
+            {
+                TableName = tableName,
+                KeySchema = new List<KeySchemaElement>
+            {
+                new KeySchemaElement
+                {
+                    AttributeName = key,
+                    KeyType = KeyType.HASH
+                }
+            },
+                AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new AttributeDefinition
+                {
+                    AttributeName = key,
+                    AttributeType = ScalarAttributeType.S
+                }
+            },
+                BillingMode = BillingMode.PAY_PER_REQUEST
+            };
+            try
+            {
+                //create the table here.
+                await CreateAndWaitUntilActive(client, request);
+                //change TTL information on table to use an attribute that is NOT the default value for this library.
+                await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
+                {
+                    TableName = tableName,
+                    TimeToLiveSpecification = new TimeToLiveSpecification
+                    {
+                        AttributeName = ttl_attribute_name,
+                        Enabled = true
+                    }
+                });
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = false;
+                });
+                cache.Get("randomCacheKey");
+                //The cache uses a DescribeTimeToLiveAsync to find the TTL Attribute name. If we verify here that it has the right name,
+                //the cache should have the right name also.
+                var ttlDescription = await client.DescribeTimeToLiveAsync(tableName);
+                Assert.Equal(ttl_attribute_name, ttlDescription.TimeToLiveDescription.AttributeName);
+                //It can take time for the status to be fully enabled. So we check for both enabled and enabling.
+                //Both states are acceptable
+                Assert.True(ttlDescription.TimeToLiveDescription.TimeToLiveStatus.Equals(TimeToLiveStatus.ENABLING) ||
+                    ttlDescription.TimeToLiveDescription.TimeToLiveStatus.Equals(TimeToLiveStatus.ENABLED));
             }
             finally
             {
