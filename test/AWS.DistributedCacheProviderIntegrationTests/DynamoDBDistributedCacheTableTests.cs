@@ -313,7 +313,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         public async void LoadTableWithCustomTTLKey()
         {
             var ttl_attribute_name = "MyTTLAttributeName";
-            var key = DynamoDBDistributedCache.PRIMARY_KEY;
+            var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
             var tableName = TABLE_NAME_PREFIX + "table_test_5";
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
