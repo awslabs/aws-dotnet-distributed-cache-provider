@@ -288,7 +288,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             {
                 //create the table here.
                 await CreateAndWaitUntilActive(client, request);
-                //change TTL information on table to use an attribute that is NOT the defautl value for this library.
+                //change TTL information on table to use an attribute that is NOT the default value for this library.
                 await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
                 {
                     TableName = tableName,
