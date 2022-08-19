@@ -55,7 +55,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             //key must match what the cache expects the key to be. Otherwise an error will be thrown when
             //we validate that the table is valid when we make a CRUD call.
-            var key = DynamoDBDistributedCache.PRIMARY_KEY;
+            var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
             var tableName = TABLE_NAME_PREFIX + "table_test_1";
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
@@ -201,6 +201,60 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should not pass as the key is invalid.
                 Assert.Throws<InvalidTableException>(() => cache.Get(""));
+            }
+            finally
+            {
+                await CleanupTable(client, tableName);
+            }
+        }
+
+        /// <summary>
+        /// Test that our Cache can load a table that already exists where the primary key
+        /// of the table is different than that of the default primary key name for this
+        /// library
+        /// </summary>
+        [Fact]
+        public async void LoadTableWithDifferentPrimaryKeyThanDefault()
+        {
+            //key must match what the cache expects the key to be. Otherwise an error will be thrown when
+            //we validate that the table is valid when we make a CRUD call.
+            var key = "foobar";
+            var tableName = TABLE_NAME_PREFIX + "table_test_4";
+            var client = new AmazonDynamoDBClient();
+            var request = new CreateTableRequest
+            {
+                TableName = tableName,
+                KeySchema = new List<KeySchemaElement>
+            {
+                new KeySchemaElement
+                {
+                    AttributeName = key,
+                    KeyType = KeyType.HASH
+                }
+            },
+                AttributeDefinitions = new List<AttributeDefinition>
+            {
+                new AttributeDefinition
+                {
+                    AttributeName = key,
+                    AttributeType = ScalarAttributeType.S
+                }
+            },
+                BillingMode = BillingMode.PAY_PER_REQUEST
+            };
+            try
+            {
+                //create the table here.
+                await CreateAndWaitUntilActive(client, request);
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = false;
+                });
+                //If the library recognizes the new primary key, this test passes by this
+                //not throwing an error. Otherwise DynamoDB with throw an error
+                //saying we have an invalid schema in our GetItem call.
+                cache.Get("blah");
             }
             finally
             {
