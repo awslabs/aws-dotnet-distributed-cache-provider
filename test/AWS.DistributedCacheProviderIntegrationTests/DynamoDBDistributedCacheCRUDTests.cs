@@ -366,7 +366,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 Key = new Dictionary<string, AttributeValue>
                 {
                     {
-                        DynamoDBDistributedCache.PRIMARY_KEY, new AttributeValue{S = key}
+                        DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY, new AttributeValue{S = key}
                     }
                 }
             });
@@ -380,7 +380,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 Item = new Dictionary<string, AttributeValue>
                 {
                     {
-                        DynamoDBDistributedCache.PRIMARY_KEY, new AttributeValue { S = key }
+                        DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY, new AttributeValue { S = key }
                     },
                     {
                         DynamoDBDistributedCache.VALUE_KEY, new AttributeValue {B = new MemoryStream(value)}

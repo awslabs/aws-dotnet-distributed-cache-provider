@@ -18,7 +18,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
             moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
             var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
@@ -41,7 +41,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
             moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
             var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
@@ -57,7 +57,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
             moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
             var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
@@ -91,7 +91,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
             moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
             var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
@@ -125,7 +125,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
             moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
             var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
