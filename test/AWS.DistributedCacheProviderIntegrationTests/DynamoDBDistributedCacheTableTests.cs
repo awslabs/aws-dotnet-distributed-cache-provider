@@ -10,15 +10,13 @@ namespace AWS.DistributedCacheProviderIntegrationTests
 {
     public class DynamoDBDistributedCacheTableTests
     {
-        private readonly static string TABLE_NAME_PREFIX = "AWS.DistributedCacheProviderIntegrationTests_";
-
         /// <summary>
         /// Tests that our factory will create a Table if it does not already exist.
         /// </summary>
         [Fact]
         public async void CreateTable()
         {
-            var tableName = TABLE_NAME_PREFIX + "table_test_0";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             try
             {
@@ -56,7 +54,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //key must match what the cache expects the key to be. Otherwise an error will be thrown when
             //we validate that the table is valid when we make a CRUD call.
             var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
-            var tableName = TABLE_NAME_PREFIX + "table_test_1";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
             var request = new CreateTableRequest
@@ -107,7 +105,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             var key1 = "key";
             var key2 = "key2";
-            var tableName = TABLE_NAME_PREFIX + "table_test_2";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             var request = new CreateTableRequest
             //Invalid becuase key is non-composite
@@ -167,7 +165,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         public async void LoadInvalidTable_BadKeyTypeTest()
         {
             var key = "key";
-            var tableName = TABLE_NAME_PREFIX + "table_test_3";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             var request = new CreateTableRequest
             {
@@ -219,7 +217,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //key must match what the cache expects the key to be. Otherwise an error will be thrown when
             //we validate that the table is valid when we make a CRUD call.
             var key = "foobar";
-            var tableName = TABLE_NAME_PREFIX + "table_test_4";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             var request = new CreateTableRequest
             {
@@ -269,7 +267,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         public async void CreateTableWithCustomTTLKey()
         {
             var ttl_attribute_name = "MyTTLAttributeName";
-            var tableName = TABLE_NAME_PREFIX + "table_test_4";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             try
             {
@@ -314,7 +312,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             var ttl_attribute_name = "MyTTLAttributeName";
             var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
-            var tableName = TABLE_NAME_PREFIX + "table_test_5";
+            var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
             var request = new CreateTableRequest
