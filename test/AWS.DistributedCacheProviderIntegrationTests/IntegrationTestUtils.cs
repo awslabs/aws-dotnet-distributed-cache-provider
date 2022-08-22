@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit.Abstractions;
 
@@ -24,13 +25,24 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             //This method is being called from Integration tests. The methods being used here are not returning null.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            var base_method = new StackTrace().GetFrame(1).GetMethod().ReflectedType;
-            var name_space = base_method.Namespace;
-            var clazz = base_method.DeclaringType.Name;
-            var method_name = base_method.Name.Split('<', '>')[1];
+            var baseMethod = new StackTrace().GetFrame(1).GetMethod().ReflectedType;
+            var nameSpace = baseMethod.Namespace;
+            var className = baseMethod.DeclaringType.Name;
+            var methodName = baseMethod.Name.Split('<', '>')[1];
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-            var fullName = $"{name_space}-{clazz}-{method_name}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
-            return fullName;
+            var fullName = $"{nameSpace}-{className}-{methodName}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            //DynamoDB Table name cannot have special chars
+            var filteredName = Regex.Replace(fullName, @"[^0-9a-zA-Z]+", "");
+            //DynamoDB Table name length must be between 3 and 255 chars
+            if(filteredName.Length > 255)
+            {
+                return filteredName.Substring(filteredName.Length - 255, filteredName.Length);
+            }
+            //DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() returns a string that is longer than 3 chars. No need to check that case.
+            else
+            {
+                return filteredName;
+            }
         }
     }
 }
