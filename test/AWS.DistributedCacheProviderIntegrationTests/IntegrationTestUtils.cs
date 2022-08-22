@@ -34,9 +34,10 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //DynamoDB Table name cannot have special chars
             var filteredName = Regex.Replace(fullName, @"[^0-9a-zA-Z]+", "");
             //DynamoDB Table name length must be between 3 and 255 chars
+            //Check that is does not exceed 255
             if(filteredName.Length > 255)
             {
-                return filteredName.Substring(filteredName.Length - 255, filteredName.Length);
+                return filteredName.Substring(filteredName.Length - 255);
             }
             //DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() returns a string that is longer than 3 chars. No need to check that case.
             else
