@@ -19,7 +19,7 @@ namespace AWS.DistributedCacheProvider
         /// <param name="create">Create the table if it does not exist.</param>
         /// <param name="TtlAttribute">When turning on TTL, what column should specifically be used? If left null, a default will be used.</param>
         /// <returns>The attribute name of the Table's Primary Key</returns>
-        public Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string TtlAttribute);
+        public Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string TtlAttribute, string primaryKeyAttribute);
 
         /// <summary>
         /// Returns the TTL attribute column for this table.

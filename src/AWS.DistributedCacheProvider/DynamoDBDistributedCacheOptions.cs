@@ -32,6 +32,11 @@ namespace AWS.DistributedCacheProvider
         /// </summary>
         public string? TTLAttributeName { get; set; }
 
+        /// <summary>
+        /// Optional parameter. Mane of the Primary Key attribute when Table is created here.
+        /// </summary>
+        public string? PrimaryKeyName { get; set; }
+
         public DynamoDBDistributedCacheOptions Value
         {
             get { return this; }

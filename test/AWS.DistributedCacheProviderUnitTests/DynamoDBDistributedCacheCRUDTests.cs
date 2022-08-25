@@ -17,7 +17,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             var moqClient = new Moq.Mock<IAmazonDynamoDB>();
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
-            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
+            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
@@ -40,7 +40,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Throws(new ResourceNotFoundException(""));
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
-            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
+            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
@@ -56,7 +56,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Throws(new ResourceNotFoundException(""));
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
-            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
+            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
@@ -90,7 +90,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Returns(Task.FromResult(new UpdateItemResponse()));
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
-            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
+            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
@@ -124,7 +124,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Throws(new ResourceNotFoundException(""));
             var moqCreator = new Moq.Mock<IDynamoDBTableCreator>();
             //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
-            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
+            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));

@@ -24,7 +24,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Throws(new ResourceNotFoundException(""));
             var creator = new DynamoDBTableCreator();
             //create table, set create boolean to false.
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "", ""));
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace AWS.DistributedCacheProviderUnitTests
             moqClient.Setup(x => x.CreateTableAsync(It.IsAny<CreateTableRequest>(), It.IsAny<CancellationToken>()));
             var creator = new DynamoDBTableCreator();
             //create table, set create boolean to true.
-            await creator.CreateTableIfNotExistsAsync(moqClient.Object, "", true, "");
+            await creator.CreateTableIfNotExistsAsync(moqClient.Object, "", true, "", "");
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                     }
                 }));
             var creator = new DynamoDBTableCreator();
-            await creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "");
+            await creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "", "");
         }
 
         /// <summary>
@@ -132,7 +132,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                     }
                 }));
             var creator = new DynamoDBTableCreator();
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "", ""));
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                     }
                 }));
             var creator = new DynamoDBTableCreator();
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "", ""));
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace AWS.DistributedCacheProviderUnitTests
                     }
                 }));
             var creator = new DynamoDBTableCreator();
-            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, ""));
+            Assert.ThrowsAsync<AmazonDynamoDBException>(() => creator.CreateTableIfNotExistsAsync(moqClient.Object, "", false, "", ""));
         }
     }
 }
