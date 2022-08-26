@@ -58,6 +58,10 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(creator));
             }
+            if(options.TableName == null)
+            {
+                throw new ArgumentException("TableName must be specified in the DynamoDBDistributedCacheOptions parameter");
+            }
             if (loggerFactory != null)
             {
                 _logger = loggerFactory.CreateLogger<DynamoDBDistributedCache>();
@@ -69,7 +73,7 @@ namespace AWS.DistributedCacheProvider
             _ddbClient = client;
             _dynamodbTableCreator = creator;
             _consistentReads = options.ConsistentReads;
-            _tableName = options.TableName;
+            _tableName = options.TableName!;
             _ttlAttributeName = options.TTLAttributeName ?? DEFAULT_TTL_ATTRIBUTE_NAME;
             _createTableifNotExists = options.CreateTableIfNotExists;
             _primaryKey = DEFAULT_PRIMARY_KEY;

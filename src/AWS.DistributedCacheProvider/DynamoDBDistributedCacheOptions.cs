@@ -13,7 +13,7 @@ namespace AWS.DistributedCacheProvider
         /// <summary>
         /// Required parameter. The name of the backing DynamoDB Table. Cannot be Null or Empty
         /// </summary>
-        public string TableName { get; set; }
+        public string? TableName { get; set; }
 
         /// <summary>
         /// Optional parameter. If the table tablename does not exist, create the table.  Default is false
