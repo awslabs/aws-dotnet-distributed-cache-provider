@@ -31,7 +31,7 @@ namespace AWS.DistributedCacheProvider.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute)
+        public async Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute, string? primaryKeyAttribute)
         {
             _logger.LogDebug($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}.");
             try
@@ -51,7 +51,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 _logger.LogDebug("Table does not exist");
                 if (create)
                 {
-                    var primaryKey = await CreateTableAsync(client, tableName, ttlAttribute);
+                    var primaryKey = await CreateTableAsync(client, tableName, ttlAttribute, primaryKeyAttribute);
                     _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}. Primary key is {primaryKey}");
                     return primaryKey;
                 }
@@ -100,9 +100,9 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <param name="client">DynamoDB client</param>
         /// <param name="tableName">Table name</param>
         /// <param name="ttlAttribute">TTL attribute name</param>
-        private async Task<string> CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute)
+        private async Task<string> CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute, string? primaryKeyAttribute)
         {
-            var primaryKey = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
+            var primaryKey = primaryKeyAttribute ?? DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
             var createRequest = new CreateTableRequest
             {
                 TableName = tableName,

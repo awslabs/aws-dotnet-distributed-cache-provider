@@ -72,7 +72,7 @@ namespace AWS.DistributedCacheProvider
             _tableName = options.TableName;
             _ttlAttributeName = options.TTLAttributeName ?? DEFAULT_TTL_ATTRIBUTE_NAME;
             _createTableifNotExists = options.CreateTableIfNotExists;
-            _primaryKey = DEFAULT_PRIMARY_KEY;
+            _primaryKey = options.PrimaryKeyName ?? DEFAULT_PRIMARY_KEY;
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace AWS.DistributedCacheProvider
                     if (!_started)
                     {
                         _logger.LogDebug("Started still set to false, Starting up.");
-                        _primaryKey = await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName);
+                        _primaryKey = await _dynamodbTableCreator.CreateTableIfNotExistsAsync(_ddbClient, _tableName, _createTableifNotExists, _ttlAttributeName, _primaryKey);
                         _ttlAttributeName = await _dynamodbTableCreator.GetTTLColumnAsync(_ddbClient, _tableName);
                         //Check type because test classes use Mocked objects
                         if (_ddbClient is AmazonDynamoDBClient)

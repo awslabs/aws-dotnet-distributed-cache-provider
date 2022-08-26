@@ -46,6 +46,48 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         }
 
         /// <summary>
+        /// Tests that our factory will create a Table with a custom primary key if the table does not already exist.
+        /// </summary>
+        [Fact]
+        public async void CreateTableWithCustomPrimaryKey()
+        {
+            var tableName = IntegrationTestUtils.GetFullTestName();
+            var primaryKeyName = "MyKeyName";
+            var client = new AmazonDynamoDBClient();
+            try
+            {
+                //First verify that a table with this name does not already exist.
+                try
+                {
+                    _ = await client.DescribeTableAsync(tableName);
+                    //If no exception was thrown, then the table already exists, bad state for test.
+                    throw new XunitException("Table already exists, cannot create table");
+                }
+                catch (ResourceNotFoundException) { }
+                var cache = GetCache(options =>
+                {
+                    options.TableName = tableName;
+                    options.CreateTableIfNotExists = true;
+                    options.PrimaryKeyName = primaryKeyName;
+                });
+                //With lazy implementation, table creation is delayed until the client actually needs it.
+                //resolving the table should pass.
+                //Key cannot be empty, otherwise the client will throw an exception
+                cache.Get("randomCacheKey");
+                //Now describe the table to see the primary key name
+                var keySchema = (await client.DescribeTableAsync(tableName)).Table.KeySchema;
+                Assert.Single(keySchema);
+                var keyElement = keySchema[0];
+                Assert.Equal(primaryKeyName, keyElement.AttributeName);
+            }
+            finally
+            {
+                //Delete DynamoDB table
+                await CleanupTable(client, tableName);
+            }
+        }
+
+        /// <summary>
         /// Test that our Cache can load a table that already exists
         /// </summary>
         [Fact]
