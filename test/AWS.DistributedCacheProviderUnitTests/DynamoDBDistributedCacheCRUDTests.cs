@@ -21,7 +21,10 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
-            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
+            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions
+            {
+                TableName = "MyTableName"
+            });
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.Throws<ArgumentNullException>(() => cache.Get(null));
             Assert.Throws<ArgumentNullException>(() => cache.Remove(null));
@@ -44,7 +47,10 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
-            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
+            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions
+            {
+                TableName = "MyTableName"
+            });
             Assert.Null(cache.Get("foo"));
         }
 
@@ -60,7 +66,10 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
-            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
+            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions
+            {
+                TableName = "MyTableName"
+            });
             //If this throws an exception, then the test fails
             cache.Remove("foo");
         }
@@ -94,7 +103,10 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
-            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
+            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions
+            {
+                TableName = "MyTableName"
+            });
             //Test passes if this does not throw exception
             cache.Refresh("foo");
         }
@@ -128,7 +140,10 @@ namespace AWS.DistributedCacheProviderUnitTests
                 .Returns(Task.FromResult("foobar"));
             moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
                 .Returns(Task<string>.FromResult("blah"));
-            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions());
+            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions
+            {
+                TableName = "MyTableName"
+            });
             //Test passes if this does not throw exception
             cache.Refresh("foo");
         }
