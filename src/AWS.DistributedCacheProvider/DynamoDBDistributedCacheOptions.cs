@@ -33,7 +33,7 @@ namespace AWS.DistributedCacheProvider
         public string? TTLAttributeName { get; set; }
 
         /// <summary>
-        /// Optional parameter. Mane of the Primary Key attribute when Table is created here.
+        /// Optional parameter. Name of the Primary Key attribute when Table is created here.
         /// </summary>
         public string? PrimaryKeyName { get; set; }
 
