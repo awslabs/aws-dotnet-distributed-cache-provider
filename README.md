@@ -1,10 +1,10 @@
 ![.NET on AWS Banner](./logo.png ".NET on AWS")
 
 # AWS .NET Distributed Cache Provider
-AWS Dotnet Distributed Cache Provider provides an implementation of IDistributedCache backed by AWS DynamoDB.
+AWS Dotnet Distributed Cache Provider provides an implementation of the ASP.NET Core interface [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed) backed by AWS DynamoDB. The IDistributedCache interface is used in ASP.NET Core applications to provide a distributed cache store as well as the backing store ASP.NET Core session state.
 
 # Getting Started
-.NET has an interface for distributed caching called [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-6.0). This library provides an implementation that uses AWS DynamoDB as the underlying datastore.
+.NET has an interface for distributed caching called [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed). This library provides an implementation that uses AWS DynamoDB as the underlying datastore.
 
 .NET's convention is to use Dependency Injection to provide services to different aspects of an application's logic. This library provides extensions to assist the user in injecting this implementation of IDistributedCache as a service for other services to consume. 
 
@@ -15,11 +15,16 @@ For example, if you are building an application that requires the use of session
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddAWSDynamoDBDistributedCache("existing_dynamo_sessions_cache_table");
+builder.Services.AddAWSDynamoDBDistributedCache(options =>
+{
+    options.TableName = "existing_dynamo_sessions_cache_table";
+    options.PartitionKeyName = "id";
+    options.TTLAttributeName = "ttl_date_";
+
+});
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromSeconds(90);
-    options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 var app = builder.Build();
@@ -27,14 +32,29 @@ var app = builder.Build();
 ```
 Where `existing_dynamo_sessions_cache_table` is the name of the underlying table. 
 
-For more information about .NET's session state middleware, see [this article](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-6.0) and specifically [this section](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-6.0#configure-session-state) regarding dependency injection.
+For more information about .NET's session state middleware, see [this article](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state) and specifically [this section](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state#configure-session-state) regarding dependency injection.
 
 Here are the available options to configure the `DynamoDBDistributedCache`.
 * **TableName** - string - required - The name of an existing table that will be used to store the cache data.
-* **CreateTableIfNotExists** - boolean - optional - If the table specified does not exist, should the library create the table
+* **CreateTableIfNotExists** - boolean - optional - If set to true during startup the library will check if the specified table exists. If the
+table does not exist a new table will be created using on demand provision throughput.
+This will require extra permissions to call DescribeTable, CreateTable and UpdateTimeToLive service operations. It is recommended to only set to true in
+development environments. Production environments should create the table before deployment. This will 
+allow production deployments to have less permissions and have faster startup. **Default value is false**.
      * It should be noted that when DynamoDBDistributedCache creates a table, it does not turn on Health Checks on the new DynamoDB Table. We strongly advise turning this on if the cache needs to be highly available in the your application. See more [here](https://aws.amazon.com/builders-library/implementing-health-checks/).
-* **ConsistentReads** - boolean - optional - By default, DynamoDB offers "eventually consistent reads" which may not reflect the results of a recently completed write operation. Set this to true to enforce "strongly consistent reads", which will return the most up-to-date data. Enabling strongly consistent reads may have higher latency and use more throughput capacity. See more [Here](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html).
-* **TTLAttributeName** - string - optional - One of DynamoDB's features is Time To Live (TTL) where you can specify how long an item should remain in the database before it is deleted. IDistributedCache's [Set](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache.set?view=dotnet-plat-ext-6.0#microsoft-extensions-caching-distributed-idistributedcache-set) function takes a [DistributedCacheEntryOptions parameter](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.distributedcacheentryoptions?view=dotnet-plat-ext-6.0) specifying this information. You have the option to set the attribute name this information will stored under in the DynamoDB Table.
+* **UseConsistentReads** - boolean - optional - When true, reads from the underlying DynamoDB table will use consistent reads. 
+Having consistent reads means that any read will be from the latest data in the DynamoDB table.
+However, using consistent reads requires more read capacity affecting the cost of the DynamoDB table.
+To reduce cost this property could be set to false but the application must be able to handle
+a delay after a set operation for the data to come back in a get operation. **Default value is true**. See more [Here](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html).
+* **PartitionKeyName** - string - optional - Name of DynamoDB table's partion key. If this is not set 
+a DescribeTable service call will be made at startup to determine the partition key's name. To
+reduce startup time or avoid needing permissions to DescribeTable this property should be set.
+* **PartitionKeyPrefix** - string - optional - Prefix added to value of the partition key stored in DynamoDB.
+* **TTLAttributeName** - string - optional - DynamoDB's Time To Live (TTL) feature is relied on for removing expired cached items from the table. This option configures
+the provider for setting the attribute for the DynamoDB item that the TTL is configured for on the table. If this is not set a DescribeTimeToLive service call
+will be made to determine the partition key's name. To reduce startup time or avoid needing permissions to DescribeTimeToLive this property should be set.
+
 
 The options can be used in the following way:
 ```csharp
@@ -50,7 +70,6 @@ builder.Services.AddAWSDynamoDBDistributedCache(options =>
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromSeconds(90);
-    options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 var app = builder.Build();

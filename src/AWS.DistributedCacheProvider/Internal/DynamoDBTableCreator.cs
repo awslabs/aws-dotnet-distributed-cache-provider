@@ -16,6 +16,8 @@ namespace AWS.DistributedCacheProvider.Internal
     /// </summary>
     public class DynamoDBTableCreator : IDynamoDBTableCreator
     {
+        public const string DEFAULT_PARTITION_KEY = "id";
+
         private readonly ILogger<DynamoDBTableCreator> _logger;
 
         public DynamoDBTableCreator(ILoggerFactory? loggerFactory = null)
@@ -31,9 +33,9 @@ namespace AWS.DistributedCacheProvider.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute, string? primaryKeyAttribute)
+        public async Task<string> CreateTableIfNotExistsAsync(IAmazonDynamoDB client, string tableName, bool create, string? ttlAttribute, string? partitionKeyAttribute)
         {
-            _logger.LogDebug($"Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}.");
+            _logger.LogDebug("Create If Not Exists called. Table name: {tableName}, Create If Not Exists: {create}.", tableName, create);
             try
             {
                 //test if table already exists
@@ -42,18 +44,18 @@ namespace AWS.DistributedCacheProvider.Internal
                     TableName = tableName
                 });
                 _logger.LogDebug("Table does exist. Validating");
-                var primaryKey = ValidateTable(resp.Table);
-                _logger.LogInformation($"DynamoDB distributed cache provider configured to use table {tableName}. Primary key is {primaryKey}");
-                return primaryKey;
+                var partitionKey = ValidateTable(resp.Table);
+                _logger.LogInformation("DynamoDB distributed cache provider configured to use table {tableName}. Partition key is {partitionKey}", tableName, partitionKey);
+                return partitionKey;
             }
             catch (ResourceNotFoundException) //thrown when table does not already exist
             {
                 _logger.LogDebug("Table does not exist");
                 if (create)
                 {
-                    var primaryKey = await CreateTableAsync(client, tableName, ttlAttribute, primaryKeyAttribute);
-                    _logger.LogInformation($"DynamoDB distributed cache provider created table {tableName}. Primary key is {primaryKey}");
-                    return primaryKey;
+                    var partitionKey = await CreateTableAsync(client, tableName, ttlAttribute, partitionKeyAttribute);
+                    _logger.LogInformation("DynamoDB distributed cache provider created table {tableName}. Partition key is {partitionKey}", tableName, partitionKey);
+                    return partitionKey;
                 }
                 else
                 {
@@ -69,13 +71,13 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <exception cref="InvalidTableException">Thrown when key Schema is invalid</exception>
         private string ValidateTable(TableDescription description)
         {
-            var primaryKeyName = "";
+            var partitionKeyName = "";
             foreach (var key in description.KeySchema)
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
                 {
                     throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because it contains" +
-                        $" a range key in its schema. Cache requires a non-composite Hash key of type String.");
+                        " a range key in its schema. Cache requires a non-composite Hash key of type String.");
                 }
                 else //We know the key is of type Hash
                 {
@@ -84,14 +86,14 @@ namespace AWS.DistributedCacheProvider.Internal
                         if (attributeDef.AttributeName.Equals(key.AttributeName) && attributeDef.AttributeType != ScalarAttributeType.S)
                         {
                             throw new InvalidTableException($"Table {description.TableName} cannot be used as a cache because hash key " +
-                                 $"is not a string. Cache requires a non-composite Hash key of type String.");
+                                 "is not a string. Cache requires a non-composite Hash key of type String.");
                         }
                     }
                 }
-                //If there is an element in the key schema that is of type Hash and is a string, it must be the primary key
-                primaryKeyName = key.AttributeName;
+                //If there is an element in the key schema that is of type Hash and is a string, it must be the partition key
+                partitionKeyName = key.AttributeName;
             }
-            return primaryKeyName;
+            return partitionKeyName;
         }
 
         /// <summary>
@@ -100,9 +102,9 @@ namespace AWS.DistributedCacheProvider.Internal
         /// <param name="client">DynamoDB client</param>
         /// <param name="tableName">Table name</param>
         /// <param name="ttlAttribute">TTL attribute name</param>
-        private async Task<string> CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute, string? primaryKeyAttribute)
+        private async Task<string> CreateTableAsync(IAmazonDynamoDB client, string tableName, string? ttlAttribute, string? partitionKeyAttribute)
         {
-            var primaryKey = primaryKeyAttribute ?? DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
+            var partitionKey = partitionKeyAttribute ?? DEFAULT_PARTITION_KEY;
             var createRequest = new CreateTableRequest
             {
                 TableName = tableName,
@@ -110,7 +112,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     new KeySchemaElement
                     {
-                        AttributeName = primaryKey,
+                        AttributeName = partitionKey,
                         KeyType = KeyType.HASH
                     }
                 },
@@ -118,7 +120,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     new AttributeDefinition
                     {
-                        AttributeName = primaryKey,
+                        AttributeName = partitionKey,
                         AttributeType = ScalarAttributeType.S
                     }
                 },
@@ -135,6 +137,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     TableName = tableName
                 }))).Table.TableStatus;
+
                 if (tableStatus == TableStatus.ACTIVE)
                 {
                     isActive = true;
@@ -144,6 +147,7 @@ namespace AWS.DistributedCacheProvider.Internal
                     await Task.Delay(5000);
                 }
             }
+
             await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
             {
                 TableName = tableName,
@@ -153,18 +157,20 @@ namespace AWS.DistributedCacheProvider.Internal
                     Enabled = true
                 }
             });
-            return primaryKey;
+
+            return partitionKey;
         }
 
         /// <inheritdoc/>
         public async Task<string> GetTTLColumnAsync(IAmazonDynamoDB client, string tableName)
         {
-            var ttlDesc = (await client.DescribeTimeToLiveAsync(tableName)).TimeToLiveDescription;
+            var ttlDesc = (await client.DescribeTimeToLiveAsync(new DescribeTimeToLiveRequest { TableName = tableName })).TimeToLiveDescription;
             if (ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLED || ttlDesc.TimeToLiveStatus == TimeToLiveStatus.DISABLING)
             {
-                _logger.LogWarning($"Distributed cache table {tableName} has Time to Live (TTL) disabled. Items will never be deleted " +
-                    $"automatically. It is recommended to enable TTL for the table to remove stale cached data.");
+                _logger.LogWarning("Distributed cache table {tableName} has Time to Live (TTL) disabled. Items will never be deleted " +
+                    "automatically. It is recommended to enable TTL for the table to remove stale cached data.", tableName);
             }
+
             return ttlDesc.AttributeName ?? DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME;
         }
     }

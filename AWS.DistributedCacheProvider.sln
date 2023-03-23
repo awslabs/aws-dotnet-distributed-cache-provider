@@ -9,6 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProvide
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderIntegrationTests", "test\AWS.DistributedCacheProviderIntegrationTests\AWS.DistributedCacheProviderIntegrationTests.csproj", "{239349F5-8552-452B-830D-30FE5FBCCABA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6D3BF1B1-1B57-45B4-91AC-C1993F4B8EDC}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

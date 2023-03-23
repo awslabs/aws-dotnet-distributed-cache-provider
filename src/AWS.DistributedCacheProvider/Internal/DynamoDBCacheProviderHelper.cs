@@ -43,8 +43,8 @@ namespace AWS.DistributedCacheProvider.Internal
                 {
                     return new AttributeValue { N = ttl.ToUnixTimeSeconds().ToString() };
                 }
-            }//AbsoluteExpirationRelativeToNow is not null, regardless of what AbsoluteExpiration is set to, we prefer AbsoluteExpirationRelativeToNow
-            else
+            }
+            else //AbsoluteExpirationRelativeToNow is not null, regardless of what AbsoluteExpiration is set to, we prefer AbsoluteExpirationRelativeToNow
             {
                 var ttl = DateTimeOffset.UtcNow.Add((TimeSpan)options.AbsoluteExpirationRelativeToNow!).ToUnixTimeSeconds();
                 return new AttributeValue { N = ttl.ToString() };
