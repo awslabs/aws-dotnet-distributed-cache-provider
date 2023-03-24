@@ -5,6 +5,7 @@ using System.Text;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider;
+using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -76,7 +77,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             var resp = await GetItemAsync(key);
             Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
             Assert.True(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].NULL);
-            Assert.True(resp.Item[DynamoDBDistributedCache.TTL_DATE].NULL);
+            Assert.True(resp.Item[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].NULL);
         }
 
         [Fact]
@@ -96,7 +97,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //ttl date is approx 12 hours from now
             Assert.True(
                 Math.Abs(
-                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                    double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
         }
 
@@ -113,9 +114,9 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             });
             var resp = (await GetItemAsync(key)).Item;
             Assert.True(resp[DynamoDBDistributedCache.TTL_WINDOW].NULL);
-            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DEADLINE].N, resp[DynamoDBDistributedCache.TTL_DATE].N);
+            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DEADLINE].N, resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N);
             //Can't guarantee how close they will be, but within 100 seconds seems more than generous.
-            Assert.True(Math.Abs(double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - ttlInUnix) < 100);
+            Assert.True(Math.Abs(double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - ttlInUnix) < 100);
         }
 
         [Fact]
@@ -136,7 +137,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //ttl date is approx 12 hours from now
             Assert.True(
                 Math.Abs(
-                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                    double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
             //ttl deadline is approx 24 hours away
             Assert.True(
@@ -158,9 +159,9 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             });
             var resp = (await GetItemAsync(key)).Item;
             Assert.True(resp[DynamoDBDistributedCache.TTL_WINDOW].NULL);
-            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DEADLINE].N, resp[DynamoDBDistributedCache.TTL_DATE].N);
+            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DEADLINE].N, resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N);
             //Can't guarantee how close they will be, but within 100 seconds seems more than generous.
-            Assert.True(Math.Abs(double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - deadlineInUnix) < 100);
+            Assert.True(Math.Abs(double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - deadlineInUnix) < 100);
         }
 
         [Fact]
@@ -182,7 +183,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //ttl date is approx 12 hours from now
             Assert.True(
                 Math.Abs(
-                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                    double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
             //ttl deadline is approx 24 hours away
             Assert.True(
@@ -206,11 +207,11 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //Window is null
             Assert.True(resp[DynamoDBDistributedCache.TTL_WINDOW].NULL);
             //ttl date and deadline are equal
-            Assert.Equal(resp[DynamoDBDistributedCache.TTL_DATE].N, resp[DynamoDBDistributedCache.TTL_DEADLINE].N);
+            Assert.Equal(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N, resp[DynamoDBDistributedCache.TTL_DEADLINE].N);
             //ttl date is approx 12 hours from now
             Assert.True(
                 Math.Abs(
-                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                    double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
         }
 
@@ -234,7 +235,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //ttl date is approx 12 hours from now
             Assert.True(
                 Math.Abs(
-                    double.Parse(resp[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
+                    double.Parse(resp[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds())
                 < 100);
             //ttl deadline is approx 24 hours from now
             Assert.True(
@@ -254,7 +255,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             _cache.Refresh(key);
             var resp = await GetItemAsync(key);
             Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
-            Assert.True(resp.Item[DynamoDBDistributedCache.TTL_DATE].NULL);
+            Assert.True(resp.Item[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].NULL);
             Assert.True(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].NULL);
         }
 
@@ -273,7 +274,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             _cache.Refresh(key);
             var resp = await GetItemAsync(key);
             Assert.True(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].NULL);
-            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DATE].N, ttl);
+            Assert.Equal(resp.Item[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N, ttl);
             Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, ttl);
         }
 
@@ -299,7 +300,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //refresh moved TTL_DATE to approx 24 hours from now
             Assert.True(
                 Math.Abs(
-                    double.Parse(resp.Item[DynamoDBDistributedCache.TTL_DATE].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds()
+                    double.Parse(resp.Item[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N) - DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds()
                     ) < 100);
         }
 
@@ -321,7 +322,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //window stays the same
             Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S, ttl_window);
             //refresh moves TTL_DATE to be equal to TTL_DEADLINE
-            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DATE].N, resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N);
+            Assert.Equal(resp.Item[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N, resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N);
             //deadline stays the same
             Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, ttl_deadline);
         }
@@ -345,7 +346,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             //window stays the same
             Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_WINDOW].S, ttl_window);
             //refresh moves TTL_DATE to be equal to TTL_DEADLINE
-            Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DATE].N, resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N);
+            Assert.Equal(resp.Item[DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME].N, resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N);
             //deadline stays the same
             Assert.Equal(resp.Item[DynamoDBDistributedCache.TTL_DEADLINE].N, ttl_deadline);
         }
@@ -366,7 +367,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 Key = new Dictionary<string, AttributeValue>
                 {
                     {
-                        DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY, new AttributeValue{S = key}
+                        DynamoDBTableCreator.DEFAULT_PARTITION_KEY, new AttributeValue{S = Utilities.FormatPartitionKey(key, null)}
                     }
                 }
             });
@@ -380,13 +381,13 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 Item = new Dictionary<string, AttributeValue>
                 {
                     {
-                        DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY, new AttributeValue { S = key }
+                        DynamoDBTableCreator.DEFAULT_PARTITION_KEY, new AttributeValue { S = Utilities.FormatPartitionKey(key, null)}
                     },
                     {
                         DynamoDBDistributedCache.VALUE_KEY, new AttributeValue {B = new MemoryStream(value)}
                     },
                     {
-                        DynamoDBDistributedCache.TTL_DATE, ttl
+                        DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME, ttl
                     },
                     {
                         DynamoDBDistributedCache.TTL_DEADLINE, deadline
@@ -413,6 +414,9 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 });
                 var provider = ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(serviceContainer);
                 _cache = (DynamoDBDistributedCache)provider.GetService<IDistributedCache>()!;
+
+                // Force the table being created before any test run
+                _cache.Get(Guid.NewGuid().ToString());
             }
 
             public void Dispose()

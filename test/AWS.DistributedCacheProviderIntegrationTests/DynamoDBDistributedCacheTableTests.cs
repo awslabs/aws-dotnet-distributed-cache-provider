@@ -1,6 +1,7 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider;
+using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -68,7 +69,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 {
                     options.TableName = tableName;
                     options.CreateTableIfNotExists = true;
-                    options.PrimaryKeyName = primaryKeyName;
+                    options.PartitionKeyName = primaryKeyName;
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should pass.
@@ -95,7 +96,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         {
             //key must match what the cache expects the key to be. Otherwise an error will be thrown when
             //we validate that the table is valid when we make a CRUD call.
-            var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
+            var key = DynamoDBTableCreator.DEFAULT_PARTITION_KEY;
             var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
@@ -188,7 +189,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 var cache = GetCache(options =>
                 {
                     options.TableName = tableName;
-                    options.CreateTableIfNotExists = false;
+                    options.CreateTableIfNotExists = true;
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should not pass as the key is invalid.
@@ -236,7 +237,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 var cache = GetCache(options =>
                 {
                     options.TableName = tableName;
-                    options.CreateTableIfNotExists = false;
+                    options.CreateTableIfNotExists = true;
                 });
                 //With lazy implementation, table creation is delayed until the client actually needs it.
                 //resolving the table should not pass as the key is invalid.
@@ -289,7 +290,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 var cache = GetCache(options =>
                 {
                     options.TableName = tableName;
-                    options.CreateTableIfNotExists = false;
+                    options.CreateTableIfNotExists = true;
                 });
                 //If the library recognizes the new primary key, this test passes by this
                 //not throwing an error. Otherwise DynamoDB with throw an error
@@ -353,7 +354,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         public async void LoadTableWithCustomTTLKey()
         {
             var ttl_attribute_name = "MyTTLAttributeName";
-            var key = DynamoDBDistributedCache.DEFAULT_PRIMARY_KEY;
+            var key = DynamoDBTableCreator.DEFAULT_PARTITION_KEY;
             var tableName = IntegrationTestUtils.GetFullTestName();
             var client = new AmazonDynamoDBClient();
             //Valid table - Non-composite Hash key of type String.
