@@ -3,6 +3,7 @@
 # AWS .NET Distributed Cache Provider
 AWS Dotnet Distributed Cache Provider provides an implementation of the ASP.NET Core interface [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed) backed by AWS DynamoDB. The IDistributedCache interface is used in ASP.NET Core applications to provide a distributed cache store as well as the backing store ASP.NET Core session state.
 
+
 # Getting Started
 .NET has an interface for distributed caching called [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed). This library provides an implementation that uses AWS DynamoDB as the underlying datastore.
 
@@ -110,6 +111,12 @@ Come see what .NET developers at AWS are up to!  Learn about new .NET software a
 
 [@dotnetonaws](https://twitter.com/dotnetonaws)
 Follow us on twitter!
+
+# Security
+
+The AWS .NET Distributed Cache Provider relies on the [AWS SDK for .NET](https://github.com/aws/aws-sdk-net) for communicating with AWS. Refer to the [security section](https://docs.aws.amazon.com/sdk-for-net/v3/developer-guide/security.html) in the [AWS SDK for .NET Developer Guide](https://docs.aws.amazon.com/sdk-for-net/v3/developer-guide/welcome.html) for more information.
+
+If you discover a potential security issue, refer to the [security policy](https://github.com/awslabs/aws-dotnet-distributed-cache-provider/security/policy) for reporting information.
 
 # License
 
