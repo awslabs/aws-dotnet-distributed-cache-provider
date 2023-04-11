@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32526.322
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProvider", "src\AWS.DistributedCacheProvider\AWS.DistributedCacheProvider.csproj", "{BDDB418E-2C8C-40C0-A227-C32E41547798}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderUnitTests", "test\AWS.DistributedCacheProviderUnitTests\AWS.DistributedCacheProviderUnitTests.csproj", "{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.DistributedCacheProviderIntegrationTests", "test\AWS.DistributedCacheProviderIntegrationTests\AWS.DistributedCacheProviderIntegrationTests.csproj", "{239349F5-8552-452B-830D-30FE5FBCCABA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6D3BF1B1-1B57-45B4-91AC-C1993F4B8EDC}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDDB418E-2C8C-40C0-A227-C32E41547798}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA625C23-4F9F-4FE2-A293-3B8E3B04B5FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{239349F5-8552-452B-830D-30FE5FBCCABA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{239349F5-8552-452B-830D-30FE5FBCCABA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{239349F5-8552-452B-830D-30FE5FBCCABA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{239349F5-8552-452B-830D-30FE5FBCCABA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A2C41B1-751D-4C28-BB61-97769E6C437C}
+	EndGlobalSection
+EndGlobal
