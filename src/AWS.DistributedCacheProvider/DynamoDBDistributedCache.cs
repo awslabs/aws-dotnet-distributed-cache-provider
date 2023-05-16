@@ -10,6 +10,7 @@ using Amazon.Runtime;
 using System.Reflection;
 using System.Text;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Options;
 
 namespace AWS.DistributedCacheProvider
 {
@@ -43,14 +44,14 @@ namespace AWS.DistributedCacheProvider
         /// <param name="client">DynamoDB Client</param>
         /// <param name="creator">Creator class that is responsible for creating or validating the DynamoDB Table</param>
         /// <param name="options">Configurable options for the cache</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public DynamoDBDistributedCache(IAmazonDynamoDB client, IDynamoDBTableCreator creator, DynamoDBDistributedCacheOptions options, ILoggerFactory? loggerFactory = null)
+        /// <exception cref="ArgumentNullException">Thrown when one of the required parameters is null</exception>
+        public DynamoDBDistributedCache(IAmazonDynamoDB client, IDynamoDBTableCreator creator, IOptions<DynamoDBDistributedCacheOptions> options, ILoggerFactory? loggerFactory = null)
         {
             if (client == null)
             {
                 throw new ArgumentNullException(nameof(client));
             }
-            if (options == null)
+            if (options == null || options.Value == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
@@ -58,7 +59,7 @@ namespace AWS.DistributedCacheProvider
             {
                 throw new ArgumentNullException(nameof(creator));
             }
-            if(options.TableName == null)
+            if(options.Value.TableName == null)
             {
                 throw new ArgumentException("TableName must be specified in the DynamoDBDistributedCacheOptions parameter");
             }
@@ -72,14 +73,14 @@ namespace AWS.DistributedCacheProvider
             }
             _ddbClient = client;
             _dynamodbTableCreator = creator;
-            _consistentReads = options.UseConsistentReads;
-            _tableName = options.TableName!;
-            _createTableifNotExists = options.CreateTableIfNotExists;            
-            _partitionKeyPrefix = options.PartitionKeyPrefix;
+            _consistentReads = options.Value.UseConsistentReads;
+            _tableName = options.Value.TableName;
+            _createTableifNotExists = options.Value.CreateTableIfNotExists;
+            _partitionKeyPrefix = options.Value.PartitionKeyPrefix;
 
             // Use ! because there is a delay to _partitionKey and _ttlDateAttributeName being initialized during StartupAsync
-            _partitionKey = options.PartitionKeyName!;
-            _ttlDateAttributeName = options.TTLAttributeName!;
+            _partitionKey = options.Value.PartitionKeyName!;
+            _ttlDateAttributeName = options.Value.TTLAttributeName!;
         }
 
         /// <summary>
