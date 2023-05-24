@@ -32,8 +32,8 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
-		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.102.11" />
-		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.5" />
+		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.103.9" />
+		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.7" />
 	</ItemGroup>
 
 </Project>
