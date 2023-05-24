@@ -1,15 +1,15 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Amazon.DynamoDBv2;
-using Microsoft.Extensions.Caching.Distributed;
 using Amazon.DynamoDBv2.Model;
+using Amazon.Runtime;
 using AWS.DistributedCacheProvider.Internal;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Amazon.Runtime;
-using System.Reflection;
-using System.Text;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Options;
 
 namespace AWS.DistributedCacheProvider
