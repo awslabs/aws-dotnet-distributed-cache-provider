@@ -38,6 +38,12 @@ namespace AWS.DistributedCacheProviderIntegrationTests
                 //resolving the table should pass.
                 //Key cannot be empty, otherwise the client will throw an exception
                 cache.Get("randomCacheKey");
+
+                var table = (await client.DescribeTableAsync(tableName)).Table;
+
+                // Null value indicates that data in the table is encrypted at rest via an AWS owned KMS key.
+                // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html
+                Assert.Null(table.SSEDescription);
             }
             finally
             {
