@@ -1,6 +1,5 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-using System.Xml.Linq;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using AWS.DistributedCacheProvider;
@@ -53,6 +52,40 @@ namespace AWS.DistributedCacheProviderUnitTests
             {
                 TableName = "MyTableName"
             });
+            Assert.Null(cache.Get("foo"));
+        }
+
+        [Fact]
+        public void Get_ReturnsNull_WhenKeyIsExpired_ButStillExistsinTheTable()
+        {
+            // Create mock DDB client that returns an expired key.
+            var moqClient = new Mock<IAmazonDynamoDB>();
+            moqClient.Setup(x => x.GetItemAsync(It.IsAny<GetItemRequest>(), CancellationToken.None))
+                .Returns(Task.FromResult(new GetItemResponse
+                {
+                    Item = new Dictionary<string, AttributeValue>
+                    {
+                        {
+                            DynamoDBDistributedCache.VALUE_KEY, new AttributeValue {S = "someValue"}
+                        },
+                        {
+                            DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME, new AttributeValue{N = DateTimeOffset.Now.AddHours(-5).ToUnixTimeSeconds().ToString()}
+                        },
+                    }
+                }));
+
+            var moqCreator = new Mock<IDynamoDBTableCreator>();
+            //Mock method calls to make sure DynamoDBDistributedCache.Startup() returns immediately. 
+            moqCreator.Setup(x => x.CreateTableIfNotExistsAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(Task.FromResult("foobar"));
+            moqCreator.Setup(x => x.GetTTLColumnAsync(It.IsAny<IAmazonDynamoDB>(), It.IsAny<string>()))
+                .Returns(Task.FromResult(DynamoDBDistributedCache.DEFAULT_TTL_ATTRIBUTE_NAME));
+
+            var cache = new DynamoDBDistributedCache(moqClient.Object, moqCreator.Object, new DynamoDBDistributedCacheOptions
+            {
+                TableName = "MyTableName",
+            });
+
             Assert.Null(cache.Get("foo"));
         }
 
