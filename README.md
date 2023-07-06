@@ -1,9 +1,11 @@
 ![.NET on AWS Banner](./logo.png ".NET on AWS")
 
-# AWS .NET Distributed Cache Provider
+# AWS .NET Distributed Cache Provider [![nuget](https://img.shields.io/nuget/v/AWS.AspNetCore.DistributedCacheProvider.svg) ![downloads](https://img.shields.io/nuget/dt/AWS.AspNetCore.DistributedCacheProvider.svg)](https://www.nuget.org/packages/AWS.AspNetCore.DistributedCacheProvider/)
 The AWS .NET Distributed Cache Provider provides an implementation of the ASP.NET Core interface [IDistributedCache](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed) backed by Amazon DynamoDB. A common use of an `IDistributedCache` implementation is to store ephemeral, non-critical [session state](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/app-state?#session-state) data in ASP.NET Core applications.
 
 # Getting Started
+Install the [AWS.AspNetCore.DistributedCacheProvider](https://www.nuget.org/packages/AWS.AspNetCore.DistributedCacheProvider/) package from NuGet.
+
 .NET uses [dependency injection](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection) to provide services to different objects that rely on them. This library provides extensions to assist the user in injecting this implementation of `IDistributedCache` as a service for other objects to consume.
 
 ## Sample
