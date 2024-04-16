@@ -36,7 +36,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
 		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.302.15" />
-		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.7" />
+		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
 	</ItemGroup>
 
 </Project>
