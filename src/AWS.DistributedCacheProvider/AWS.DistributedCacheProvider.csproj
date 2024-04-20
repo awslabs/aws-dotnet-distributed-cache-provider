@@ -5,7 +5,7 @@
 		<RootNamespace>AWS.DistributedCacheProvider</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.9.2</Version>
+		<Version>0.9.3</Version>
 		<PackageId>AWS.AspNetCore.DistributedCacheProvider</PackageId>
 		<Title>AWS Provider for ASP.NET Core's IDistributedCache</Title>
 		<Description>The AWS Distributed Cache provider provides an IDistributedCache implementation backed by DynamoDB.</Description>
@@ -35,8 +35,8 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
-		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.103.9" />
-		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.7" />
+		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.302.15" />
+		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
 	</ItemGroup>
 
 </Project>

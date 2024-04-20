@@ -144,15 +144,18 @@ namespace AWS.DistributedCacheProvider
             }
         }
 
-        const string UserAgentHeader = "User-Agent";
+        private const string _userAgentHeader = "User-Agent";
+
+        private static readonly string _userAgentString = $"lib/DynamoDBDistributedCache#{_assemblyVersion}";
+
         /// <summary>
         /// Appends a unique header to the existing headers of all requests made by DynamoDBClient in this class to reflect that the requests originated from this library.
         /// </summary>
         void DynamoDBSessionStateStore_BeforeRequestEvent(object sender, RequestEventArgs e)
         {
-            if (e is not WebServiceRequestEventArgs args || !args.Headers.ContainsKey(UserAgentHeader))
+            if (e is not WebServiceRequestEventArgs args || !args.Headers.ContainsKey(_userAgentHeader) || args.Headers[_userAgentHeader].Contains(_userAgentString))
                 return;
-            args.Headers[UserAgentHeader] = args.Headers[UserAgentHeader] + " DynamoDBDistributedCache/" + _assemblyVersion;
+            args.Headers[_userAgentHeader] = args.Headers[_userAgentHeader] + " " + _userAgentString;
         }
 
         /// <summary>
