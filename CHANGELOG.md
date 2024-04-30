@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.3 (2024-04-20)
+- Update User-Agent string
+
 ## 0.9.2 (2023-07-28)
 - Add PackageReadmeFile attribute to show README file in NuGet
 
