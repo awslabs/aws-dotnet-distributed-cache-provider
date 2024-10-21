@@ -1,0 +1,11 @@
+{
+  "Projects": [
+    {
+      "Name": "AWS.AspNetCore.DistributedCacheProvider",
+      "Path": "src/AWS.DistributedCacheProvider/AWS.DistributedCacheProvider.csproj"
+    }
+  ],
+  "UseCommitsForChangelog": false,
+  "DefaultIncrementType": "Patch",
+  "ChangeFilesDetermineIncrementType": true
+}
