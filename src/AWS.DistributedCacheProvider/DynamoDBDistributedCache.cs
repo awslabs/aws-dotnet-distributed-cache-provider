@@ -392,8 +392,6 @@ namespace AWS.DistributedCacheProvider
             return DateTimeOffset.FromUnixTimeSeconds((long)double.Parse(seconds));
         }
 
-
-
         /// <summary>
         /// Retrieves the value associated with <paramref name="key"/> in the cache and updates the Item's TTL.
         /// If there is no value associated with the <paramref name="key"/> or there is a value, but the Item's TTL
@@ -427,6 +425,12 @@ namespace AWS.DistributedCacheProvider
                     return null;
                 }
                 throw new DynamoDBDistributedCacheException($"Failed to get Item with key {key}. Caused by {e.Message}", e);
+            }
+
+            if (getItemResponse.Item is null)
+            {
+                _logger.LogDebug("DynamoDB did not find an Item associated with the key {key}", key);
+                return null;
             }
 
             //Check if there is a value we should be returning to the client. If there is no value, there is no reason to refresh the Item

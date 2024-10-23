@@ -38,8 +38,8 @@ namespace AWS.DistributedCacheProviderUnitTests
             };
             var deadline = DynamoDBCacheProviderHelper.CalculateTTLDeadline(options);
             var ttl = DynamoDBCacheProviderHelper.CalculateTTL(options);
-            Assert.False(deadline.NULL);
-            Assert.False(ttl.NULL);
+            Assert.Null(deadline.NULL);
+            Assert.Null(ttl.NULL);
             Assert.Equal(ttl.N, deadline.N);
         }
 

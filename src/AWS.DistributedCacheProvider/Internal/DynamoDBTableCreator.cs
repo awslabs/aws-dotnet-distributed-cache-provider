@@ -72,7 +72,8 @@ namespace AWS.DistributedCacheProvider.Internal
         private string ValidateTable(TableDescription description)
         {
             var partitionKeyName = "";
-            foreach (var key in description.KeySchema)
+            var keySchema = description.KeySchema ?? new List<KeySchemaElement>();
+            foreach (var key in keySchema)
             {
                 if (key.KeyType.Equals(KeyType.RANGE))
                 {
@@ -81,7 +82,8 @@ namespace AWS.DistributedCacheProvider.Internal
                 }
                 else //We know the key is of type Hash
                 {
-                    foreach (var attributeDef in description.AttributeDefinitions)
+                    var attributeDefinitions = description.AttributeDefinitions ?? new List<AttributeDefinition>();
+                    foreach (var attributeDef in attributeDefinitions)
                     {
                         if (attributeDef.AttributeName.Equals(key.AttributeName) && attributeDef.AttributeType != ScalarAttributeType.S)
                         {
