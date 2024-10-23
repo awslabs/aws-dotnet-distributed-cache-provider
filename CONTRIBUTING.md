@@ -63,12 +63,12 @@ dotnet tool install -g AutoVer
 ```
 You can create the `change file` using the following command:
 ```
-autover change --project-name "Amazon.AspNetCore.Identity.Cognito" -m "Fixed an issue causing a failure somewhere
+autover change --project-name "AWS.AspNetCore.DistributedCacheProvider" -m "Fixed an issue causing a failure somewhere
 ```
 Note: Make sure to run the command from the root of the repository.
 You can update the command to specify which project you are updating.
 The available projects are:
-* Amazon.AspNetCore.Identity.Cognito
+* AWS.AspNetCore.DistributedCacheProvider
 The possible increment types are:
 * Patch
 * Minor
