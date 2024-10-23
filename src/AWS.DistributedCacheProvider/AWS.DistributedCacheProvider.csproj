@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFrameworks>net6.0;net8.0</TargetFrameworks>
 		<RootNamespace>AWS.DistributedCacheProvider</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.9.3</Version>
+		<Version>2.0.0-preview.1</Version>
 		<PackageId>AWS.AspNetCore.DistributedCacheProvider</PackageId>
 		<Title>AWS Provider for ASP.NET Core's IDistributedCache</Title>
 		<Description>The AWS Distributed Cache provider provides an IDistributedCache implementation backed by DynamoDB.</Description>
@@ -20,7 +20,16 @@
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\..\public.snk</AssemblyOriginatorKeyFile>
 
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<IsTrimmable>true</IsTrimmable>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -35,8 +44,9 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
-		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.302.15" />
-		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
+		<PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.0-preview.4" />
+		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.0-preview.4" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 	</ItemGroup>
 
 </Project>

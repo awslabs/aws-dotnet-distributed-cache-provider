@@ -64,7 +64,7 @@ namespace AWS.DistributedCacheProvider.Internal
                 var ttl = DateTimeOffset.UtcNow.Add(((TimeSpan)options.SlidingExpiration));
                 //Cannot be later than the deadline
                 var absoluteTTL = CalculateTTLDeadline(options);
-                if (absoluteTTL.NULL)
+                if (absoluteTTL.NULL is not null && (bool)absoluteTTL.NULL)
                 {
                     return new AttributeValue { N = ttl.ToUnixTimeSeconds().ToString() };
                 }
