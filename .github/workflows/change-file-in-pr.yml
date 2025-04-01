@@ -19,12 +19,15 @@ jobs:
         uses: tj-actions/changed-files@4edd678ac3f81e2dc578756871e4d00c19191daf #v45
 
       - name: Check for Change File(s) in .autover/changes/
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          DIRECTORY: ".autover/changes/"
         run: |
-          DIRECTORY=".autover/changes/"
-          if echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -q "$DIRECTORY"; then
+          if echo "$CHANGED_FILES" | grep -q "$DIRECTORY"; then
             echo "✅ One or more change files in '$DIRECTORY' are included in this PR."
           else
             echo "❌ No change files in '$DIRECTORY' are included in this PR."
             echo "Refer to the 'Adding a change file to your contribution branch' section of https://github.com/awslabs/aws-dotnet-distributed-cache-provider/blob/main/CONTRIBUTING.md"
             exit 1
           fi
+        
