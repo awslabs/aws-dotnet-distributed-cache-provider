@@ -2,7 +2,8 @@
   "Projects": [
     {
       "Name": "AWS.AspNetCore.DistributedCacheProvider",
-      "Path": "src/AWS.DistributedCacheProvider/AWS.DistributedCacheProvider.csproj"
+      "Path": "src/AWS.DistributedCacheProvider/AWS.DistributedCacheProvider.csproj",
+      "PrereleaseLabel": "preview"
     }
   ],
   "UseCommitsForChangelog": false,
