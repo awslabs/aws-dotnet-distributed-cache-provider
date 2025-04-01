@@ -5,7 +5,7 @@
 		<RootNamespace>AWS.DistributedCacheProvider</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.0.0-preview.1</Version>
+		<Version>0.20.0-preview</Version>
 		<PackageId>AWS.AspNetCore.DistributedCacheProvider</PackageId>
 		<Title>AWS Provider for ASP.NET Core's IDistributedCache</Title>
 		<Description>The AWS Distributed Cache provider provides an IDistributedCache implementation backed by DynamoDB.</Description>
