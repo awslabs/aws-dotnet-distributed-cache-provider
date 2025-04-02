@@ -1,3 +1,12 @@
+## Release 2025-04-02
+
+### AWS.AspNetCore.DistributedCacheProvider (0.20.0-preview)
+* Update AWS SDK to Preview 11
+* Remove support for .NET 6
+* Updated the .NET SDK dependencies to the latest version 4.0.0-preview.4
+* Marked project as trimmable
+* Added SourceLink support
+
 ## Release 2024-04-20
 
 ### AWS.AspNetCore.DistributedCacheProvider (0.9.3)
