@@ -1,3 +1,8 @@
+## Release 2025-04-28
+
+### AWS.AspNetCore.DistributedCacheProvider (0.21.0-preview)
+* Updated the .NET SDK dependencies to the latest version GA 4.0.0
+
 ## Release 2025-04-02
 
 ### AWS.AspNetCore.DistributedCacheProvider (0.20.0-preview)
