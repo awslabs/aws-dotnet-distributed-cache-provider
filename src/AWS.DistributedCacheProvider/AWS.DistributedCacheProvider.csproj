@@ -26,10 +26,8 @@
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<IsTrimmable>true</IsTrimmable>
+    <IsTrimmable>true</IsTrimmable>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -44,8 +42,8 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
-		<PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.0-preview.11" />
-		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.0-preview.11" />
+		<PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.0" />
+		<PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.0" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 	</ItemGroup>
 
