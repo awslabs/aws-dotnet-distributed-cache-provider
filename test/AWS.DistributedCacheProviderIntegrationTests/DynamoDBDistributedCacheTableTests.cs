@@ -5,11 +5,12 @@ using AWS.DistributedCacheProvider.Internal;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace AWS.DistributedCacheProviderIntegrationTests
 {
-    public class DynamoDBDistributedCacheTableTests
+    public class DynamoDBDistributedCacheTableTests(ITestOutputHelper output)
     {
         /// <summary>
         /// Tests that our factory will create a Table if it does not already exist.
@@ -127,7 +128,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             },
                 BillingMode = BillingMode.PAY_PER_REQUEST
             };
-            try { 
+            try {
                 //create the table here.
                 await CreateAndWaitUntilActive(client, request);
                 var cache = GetCache(options =>
@@ -354,7 +355,7 @@ namespace AWS.DistributedCacheProviderIntegrationTests
         /// <summary>
         /// Verifies that if the table was already created by the user in a different context with TTL already enabled on an
         /// attribute that is different from the library default attribute name, the cache still recognizes the correct TTL
-        /// attribute. 
+        /// attribute.
         /// </summary>
         [Fact]
         public async void LoadTableWithCustomTTLKey()
@@ -436,11 +437,22 @@ namespace AWS.DistributedCacheProviderIntegrationTests
             };
             while (!isActive)
             {
-                var descResponse = await client.DescribeTableAsync(descRequest);
-                var tableStatus = descResponse.Table.TableStatus;
+                try
+                {
+                    var descResponse = await client.DescribeTableAsync(descRequest);
+                    var tableStatus = descResponse.Table.TableStatus;
 
-                if (tableStatus == TableStatus.ACTIVE)
-                    isActive = true;
+                    if (tableStatus == TableStatus.ACTIVE)
+                        isActive = true;
+                }
+                catch (Exception ex)
+                {
+                    output.WriteLine(ex.ToString());
+                }
+                finally
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                }
             }
         }
 
